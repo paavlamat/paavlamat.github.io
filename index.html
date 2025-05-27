@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IMDb Movie Streamer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #00c8ff;
+      --accent-color: #00ff85;
+      --bg-color: #121212;
+      --light-bg: #1e1e1e;
+      --text-color: #ffffff;
+      --border-radius: 12px;
+      --transition-speed: 0.3s;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .main-content {
+      width: 80vw;
+      max-width: 900px;
+      min-height: 70vh;
+      background-color: var(--light-bg);
+      border-radius: var(--border-radius);
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 25px;
+      box-shadow: 0 0 15px rgba(0, 200, 255, 0.4);
+      position: relative;
+    }
+
+    .guidance-section {
+      width: 100%;
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      text-align: center;
+      transition: opacity var(--transition-speed) ease;
+    }
+
+    .guidance-section.hidden {
+      display: none;
+    }
+
+    .guidance-section h2 {
+      font-size: 2rem;
+      border-left: 4px solid var(--primary-color);
+      padding-left: 12px;
+      margin-bottom: 10px;
+      align-self: flex-start;
+    }
+
+    .services {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .service {
+      background-color: #232323;
+      padding: 14px 20px;
+      border-radius: var(--border-radius);
+      box-shadow: 0 0 8px rgba(0, 200, 255, 0.25);
+      transition: background-color 0.3s ease;
+    }
+
+    .service:hover {
+      background-color: #2a2a2a;
+    }
+
+    .service h3 {
+      color: var(--primary-color);
+      font-size: 1.25rem;
+      margin-bottom: 8px;
+    }
+
+    .service code {
+      display: inline-block;
+      background-color: #2a2a2a;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+
+    .player-container {
+      width: 100%;
+      height: 70vh;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    .player-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0, 200, 255, 0.6);
+    }
+
+    .search-container {
+      width: 100%;
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+    }
+
+    .search-container input {
+      flex-grow: 1;
+      min-width: 220px;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+
+    .search-container button {
+      padding: 0.75rem 1.5rem;
+      background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+      border: none;
+      border-radius: 5px;
+      color: var(--bg-color);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .search-container button:hover {
+      filter: brightness(1.1);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @media (max-width: 600px) {
+      .main-content {
+        width: 95vw;
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="main-content">
+    <div class="guidance-section" id="guidanceSection">
+      <h2>How to Find IMDb IDs</h2>
+      <div class="services">
+        <div class="service">
+          <h3>Step 1: Visit IMDb</h3>
+          <p>Go to <a href="https://www.imdb.com" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color)">IMDb.com</a> and search for a movie.</p>
+        </div>
+        <div class="service">
+          <h3>Step 2: Search</h3>
+          <p>Find the correct movie and open its page.</p>
+        </div>
+        <div class="service">
+          <h3>Step 3: Copy the IMDb ID</h3>
+          <p>From the URL, copy the ID like <code>tt4589218</code>.</p>
+        </div>
+        <div class="service">
+          <h3>Step 4: Paste It</h3>
+          <p>Use the ID to stream the movie below.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="playerContainer" class="player-container"></div>
+
+    <div class="search-container">
+      <input type="text" id="imdbInput" placeholder="Enter IMDb ID (e.g., tt4589218)" />
+      <button id="searchBtn">Search</button>
+      <button id="clearBtn">Clear</button>
+    </div>
+  </div>
+
+  <script>
+    const searchBtn = document.getElementById('searchBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const playerContainer = document.getElementById('playerContainer');
+    const imdbInput = document.getElementById('imdbInput');
+    const guidanceSection = document.getElementById('guidanceSection');
+
+    function showGuide(show) {
+      if (show) {
+        guidanceSection.classList.remove('hidden');
+        playerContainer.style.display = 'none';
+      } else {
+        guidanceSection.classList.add('hidden');
+        playerContainer.style.display = 'flex';
+      }
+    }
+
+    // Load previous IMDb ID from localStorage on page load
+    window.addEventListener('load', () => {
+      const storedID = localStorage.getItem('imdbID');
+      if (storedID) {
+        imdbInput.value = storedID;
+        loadVideo(storedID);
+      } else {
+        showGuide(true);
+      }
+    });
+
+    function loadVideo(imdbID) {
+      // Validate IMDb ID format
+      const validIDPattern = /^tt\d+$/;
+      if (!validIDPattern.test(imdbID)) {
+        alert('Please enter a valid IMDb ID (e.g., tt1234567).');
+        showGuide(true);
+        return;
+      }
+
+      const embedURL = `https://vidsrc.xyz/embed/movie/${imdbID}`;
+
+      const iframe = document.createElement('iframe');
+      iframe.src = embedURL;
+      iframe.allowFullscreen = true;
+
+      playerContainer.innerHTML = '';
+      playerContainer.appendChild(iframe);
+
+      showGuide(false);
+    }
+
+    searchBtn.addEventListener('click', () => {
+      const imdbID = imdbInput.value.trim();
+      if (!imdbID) {
+        alert('Please enter an IMDb ID.');
+        return;
+      }
+      localStorage.setItem('imdbID', imdbID);
+      loadVideo(imdbID);
+    });
+
+    clearBtn.addEventListener('click', () => {
+      imdbInput.value = '';
+      playerContainer.innerHTML = '';
+      playerContainer.style.display = 'none';
+      localStorage.removeItem('imdbID');
+      showGuide(true);
+    });
+  </script>
+</body>
+</html>
