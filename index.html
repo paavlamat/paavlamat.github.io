@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IMDb Movie Streamer</title>
+  <title>IMDb Streamer</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
     :root {
@@ -34,6 +34,118 @@
       padding: 20px;
     }
 
+    /* Adblock Modal Styles */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-box {
+      background-color: var(--light-bg);
+      padding: 25px;
+      border-radius: var(--border-radius);
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 0 20px rgba(0, 200, 255, 0.5);
+      text-align: center;
+      animation: modalFadeIn 0.4s ease-out;
+    }
+
+    @keyframes modalFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-box h2 {
+      color: var(--accent-color);
+      margin-bottom: 15px;
+    }
+
+    .modal-box p {
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .modal-box button {
+      padding: 10px 25px;
+      background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+      border: none;
+      border-radius: 5px;
+      color: var(--bg-color);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      transform: scale(1);
+    }
+
+    .modal-box button:hover {
+      filter: brightness(1.1);
+      transform: scale(1.05);
+    }
+
+    .modal-box button:active {
+      transform: scale(0.98);
+    }
+
+    /* Error Message Styles */
+    .error-message {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #ff4d4d;
+      color: white;
+      padding: 12px 24px;
+      border-radius: var(--border-radius);
+      box-shadow: 0 4px 12px rgba(255, 77, 77, 0.3);
+      z-index: 1001;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -30px);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+    }
+
+    .error-message::before {
+      content: "⚠️";
+      font-size: 1.2rem;
+    }
+
+    .fade-out {
+      animation: fadeOut 0.5s ease-out forwards;
+    }
+
+    @keyframes fadeOut {
+      to {
+        opacity: 0;
+        transform: translate(-50%, -20px);
+      }
+    }
+
     .main-content {
       width: 80vw;
       max-width: 900px;
@@ -48,6 +160,40 @@
       gap: 25px;
       box-shadow: 0 0 15px rgba(0, 200, 255, 0.4);
       position: relative;
+    }
+
+    /* Button Animations */
+    .search-container button {
+      padding: 0.75rem 1.5rem;
+      background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+      border: none;
+      border-radius: 5px;
+      color: var(--bg-color);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      transform: scale(1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .search-container button:hover {
+      filter: brightness(1.1);
+      transform: scale(1.05);
+      box-shadow: 0 5px 15px rgba(0, 200, 255, 0.4);
+    }
+
+    .search-container button:active {
+      transform: scale(0.98);
+    }
+
+    /* Clear button specific styles */
+    #clearBtn {
+      background: linear-gradient(45deg, #ff4d4d, #ff9999);
+    }
+
+    #clearBtn:hover {
+      filter: brightness(1.1);
     }
 
     .guidance-section {
@@ -160,21 +306,12 @@
       border: none;
       border-radius: 5px;
       font-size: 1rem;
+      transition: all 0.3s;
     }
 
-    .search-container button {
-      padding: 0.75rem 1.5rem;
-      background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
-      border: none;
-      border-radius: 5px;
-      color: var(--bg-color);
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-
-    .search-container button:hover {
-      filter: brightness(1.1);
+    .search-container input:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--primary-color);
     }
 
     .recent-movies {
@@ -202,8 +339,6 @@
       max-height: none;
     }
 
-    /* Limit the number of recent movies displayed to 21 via JS */
-
     .recent-movies .id-list button {
       background-color: #232323;
       border: none;
@@ -211,7 +346,7 @@
       padding: 14px 20px;
       border-radius: var(--border-radius);
       cursor: pointer;
-      transition: background-color 0.2s;
+      transition: all 0.3s;
       box-shadow: 0 0 8px rgba(0, 200, 255, 0.25);
       font-size: 1rem;
       text-align: left;
@@ -219,12 +354,19 @@
       flex-direction: row;
       align-items: center;
       gap: 12px;
-      min-width: 0; /* allow flex to shrink in grid */
+      min-width: 0;
+      position: relative;
+      overflow: hidden;
     }
 
     .recent-movies .id-list button:hover {
       background-color: var(--primary-color);
       color: var(--bg-color);
+      transform: translateY(-2px);
+    }
+
+    .recent-movies .id-list button:active {
+      transform: translateY(0);
     }
 
     .recent-movies .id-list button img {
@@ -240,12 +382,18 @@
       display: flex;
       flex-direction: column;
       text-align: left;
+      flex-grow: 1;
+      overflow: hidden;
     }
 
-    /* IMDb ID text gradient fade from light blue to green */
+    .recent-movies .id-list button strong {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .recent-movies .id-list button small {
       font-size: 0.9rem;
-      /* Gradient text */
       background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -253,13 +401,90 @@
       transition: color var(--transition-speed);
     }
 
-    /* On hover fade to solid bg color */
     .recent-movies .id-list button:hover small {
       color: var(--bg-color);
       background: none;
       -webkit-background-clip: unset;
       -webkit-text-fill-color: unset;
       background-clip: unset;
+    }
+
+    .media-type-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background-color: var(--primary-color);
+      color: var(--bg-color);
+      margin-top: 4px;
+      align-self: flex-start;
+    }
+
+    .media-type-badge.unknown {
+      background-color: #ff4d4d;
+      color: white;
+    }
+
+    /* Ripple Effect */
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.4);
+      transform: scale(0);
+      animation: ripple 0.6s linear;
+      pointer-events: none;
+    }
+
+    @keyframes ripple {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+
+    /* Fullscreen Button */
+    .fullscreen-btn {
+      position: absolute;
+      bottom: 7px;
+      right: 3px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #000;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.2s ease;
+      z-index: 20;
+      opacity: 1;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+
+    .fullscreen-btn:hover {
+      background: #000;
+      border-color: var(--primary-color);
+      transform: scale(1.1);
+      box-shadow: 0 0 15px rgba(0, 200, 255, 0.5);
+    }
+
+    .fullscreen-btn:focus {
+      outline: none;
+    }
+
+    /* Overlay to hide controls */
+    .controls-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+      pointer-events: none;
+      z-index: 10;
     }
 
     @keyframes fadeIn {
@@ -287,17 +512,31 @@
       .recent-movies .id-list {
         grid-template-columns: 1fr;
       }
+      .search-container {
+        flex-direction: column;
+      }
+      .modal-box {
+        padding: 20px 15px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="main-content">
+  <!-- Adblock Recommendation Modal -->
+  <div class="modal-overlay" id="adblockModal">
+    <div class="modal-box">
+      <h2>Ad Notice</h2>
+      <p>The video player may display advertisements when you interact with it. We recommend using an adblocker for a smoother experience.</p>
+      <button onclick="closeAdblockModal()">I Understand</button>
+    </div>
+  </div>
 
+  <div class="main-content">
     <div class="search-container">
       <input
         type="text"
         id="imdbInput"
-        placeholder="Enter IMDb ID (e.g., tt4589218)"
+        placeholder="Enter IMDb ID e.g. tt4589218"
         autocomplete="off"
       />
       <button id="searchBtn">Search</button>
@@ -317,17 +556,15 @@
               rel="noopener noreferrer"
               style="color: var(--accent-color)"
               >IMDb.com</a
-            >
-            and search for a movie.
-          </p>
+            ></p>
         </div>
         <div class="service">
           <h3>Step 2: Search</h3>
-          <p>Find a movie and open its page.</p>
+          <p>Find a movie/series and open its page.</p>
         </div>
         <div class="service">
           <h3>Step 3: Copy the IMDb ID</h3>
-          <p>From the URL, copy the ID like <code>tt4589218</code>.</p>
+          <p>From the URL, copy the ID e.g. <code>tt4589218</code></p>
         </div>
         <div class="service">
           <h3>Step 4: Paste It</h3>
@@ -338,6 +575,8 @@
 
     <div id="playerContainer" class="player-container">
       <div class="loader" id="loader"></div>
+      <div class="controls-overlay"></div>
+      <button class="fullscreen-btn" id="fullscreenBtn" aria-label="Toggle fullscreen">⛶</button>
     </div>
 
     <div class="recent-movies" id="recentMoviesSection">
@@ -355,9 +594,40 @@
     const loader = document.getElementById('loader');
     const recentMoviesSection = document.getElementById('recentMoviesSection');
     const recentMoviesList = document.getElementById('recentMoviesList');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const adblockModal = document.getElementById('adblockModal');
 
     // Put your OMDb API key here:
     const OMDB_API_KEY = '43f4542f';
+    let currentIframe = null;
+    let isMediaLoaded = false;
+
+    // Show adblock modal on page load
+    function showAdblockModal() {
+      // Only show if it hasn't been shown in this session
+      if (sessionStorage.getItem('adblockModalShown') !== 'true') {
+        adblockModal.style.display = 'flex';
+        sessionStorage.setItem('adblockModalShown', 'true');
+      }
+    }
+
+    function closeAdblockModal() {
+      adblockModal.style.display = 'none';
+    }
+
+    // Show error message
+    function showError(message) {
+      const errorEl = document.createElement('div');
+      errorEl.className = 'error-message';
+      errorEl.textContent = message;
+      document.body.appendChild(errorEl);
+      
+      // Remove after 3 seconds
+      setTimeout(() => {
+        errorEl.classList.add('fade-out');
+        setTimeout(() => errorEl.remove(), 500);
+      }, 3000);
+    }
 
     function showGuide(show) {
       if (show) {
@@ -373,7 +643,7 @@
       loader.style.display = show ? 'block' : 'none';
     }
 
-    async function fetchMovieDetails(imdbID) {
+    async function fetchMediaDetails(imdbID) {
       try {
         const response = await fetch(
           `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&i=${imdbID}`
@@ -382,18 +652,19 @@
         if (data.Response === 'True') {
           return {
             title: data.Title,
+            type: data.Type === 'movie' ? 'movie' : 'series',
             poster: data.Poster && data.Poster !== 'N/A' ? data.Poster : null,
           };
         } else {
-          return { title: 'Unknown Title', poster: null };
+          return { title: 'Unknown Title', type: 'unknown', poster: null };
         }
       } catch {
-        return { title: 'Error Fetching Title', poster: null };
+        return { title: 'Error Fetching Title', type: 'unknown', poster: null };
       }
     }
 
-    async function renderRecentMovies() {
-      let recent = JSON.parse(localStorage.getItem('recentMovies')) || [];
+    async function renderRecentMedia() {
+      let recent = JSON.parse(localStorage.getItem('recentMedia')) || [];
       if (recent.length === 0) {
         recentMoviesSection.style.display = 'none';
         return;
@@ -401,28 +672,32 @@
       recentMoviesSection.style.display = 'block';
       recentMoviesList.innerHTML = '';
 
-      // Limit recent movies to 21 max
+      // Limit recent media to 21 max
       recent = recent.slice(0, 21);
 
-      // Fetch details for all recent movies concurrently
-      const movies = await Promise.all(recent.map((id) => fetchMovieDetails(id)));
+      // Fetch details for all recent media concurrently
+      const mediaItems = await Promise.all(recent.map(item => fetchMediaDetails(item.id)));
 
-      recent.forEach((id, index) => {
-        const { title, poster } = movies[index];
+      recent.forEach((item, index) => {
+        const { id } = item;
+        const { title, type, poster } = mediaItems[index];
         const btn = document.createElement('button');
+        const isUnknown = type === 'unknown';
 
-        btn.title = `Load movie ${title} (${id})`;
-        btn.addEventListener('click', () => {
+        btn.title = `Load ${isUnknown ? 'media' : type} ${title} (${id})`;
+        btn.addEventListener('click', (e) => {
+          createRipple(e);
           imdbInput.value = id;
           updateURL(id);
           loadVideo(id);
         });
 
         btn.innerHTML = `
-          ${poster ? `<img src="${poster}" alt="Poster of ${title}" />` : ''}
+          ${poster ? `<img src="${poster}" alt="Poster of ${title}" />` : '<div class="poster-placeholder"></div>'}
           <div class="movie-info">
             <strong>${title}</strong>
             <small>${id}</small>
+            <span class="media-type-badge ${isUnknown ? 'unknown' : ''}">${isUnknown ? 'Unknown' : (type === 'movie' ? 'Movie' : 'Series')}</span>
           </div>
         `;
 
@@ -430,36 +705,59 @@
       });
     }
 
-    function saveRecentMovie(imdbID) {
-      let recent = JSON.parse(localStorage.getItem('recentMovies')) || [];
+    function saveRecentMedia(imdbID, type) {
+      let recent = JSON.parse(localStorage.getItem('recentMedia')) || [];
       // Remove if exists
-      recent = recent.filter((id) => id !== imdbID);
+      recent = recent.filter(item => item.id !== imdbID);
       // Add to front
-      recent.unshift(imdbID);
-      // Keep only 21 recent items max
+      recent.unshift({ id: imdbID, type });
+      // Keep only 21 recent movies max
       if (recent.length > 21) {
         recent = recent.slice(0, 21);
       }
-      localStorage.setItem('recentMovies', JSON.stringify(recent));
+      localStorage.setItem('recentMedia', JSON.stringify(recent));
     }
 
     function updateURL(imdbID) {
       const url = new URL(window.location);
-      url.searchParams.set('movie', imdbID);
+      url.searchParams.set('id', imdbID);
       window.history.replaceState(null, '', url.toString());
     }
 
-    function removeMovieFromURL() {
+    function removeMediaFromURL() {
       const url = new URL(window.location);
-      url.searchParams.delete('movie');
+      url.searchParams.delete('id');
       window.history.replaceState(null, '', url.toString());
     }
 
-    function loadVideo(imdbID) {
+    function toggleFullscreen() {
+      if (!isMediaLoaded) return;
+      
+      if (!document.fullscreenElement) {
+        playerContainer.requestFullscreen().catch(err => {
+          console.error(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    function handleKeyDown(e) {
+      // Prevent spacebar from scrolling
+      if (e.key === ' ') {
+        e.preventDefault();
+      }
+      
+      // Toggle fullscreen with F key only when media is loaded
+      if (e.key.toLowerCase() === 'f' && isMediaLoaded) {
+        toggleFullscreen();
+      }
+    }
+
+    async function loadVideo(imdbID) {
       const validIDPattern = /^tt\d+$/;
       if (!validIDPattern.test(imdbID)) {
-        alert('Please enter a valid IMDb ID (e.g., tt1234567).');
-        showGuide(true);
+        showError('Please enter a valid IMDb ID (e.g., tt1234567)');
         return;
       }
 
@@ -471,51 +769,132 @@
       // Remove old iframe(s)
       playerContainer.querySelectorAll('iframe').forEach((el) => el.remove());
 
+      // First determine if this is a movie or series
+      let mediaType = 'movie';
+      try {
+        const mediaDetails = await fetchMediaDetails(imdbID);
+        mediaType = mediaDetails.type === 'unknown' ? 'movie' : mediaDetails.type;
+      } catch (e) {
+        console.log("Couldn't determine media type, defaulting to movie");
+      }
+
       const iframe = document.createElement('iframe');
-      iframe.src = `https://vidsrc.xyz/embed/movie/${imdbID}`;
+      // Use the appropriate endpoint based on detected media type
+      const baseUrl = mediaType === 'movie'
+        ? `https://vidsrc.xyz/embed/movie/${imdbID}`
+        : `https://vidsrc.xyz/embed/tv/${imdbID}`;
+      
+      iframe.src = `${baseUrl}?controls=0`;
       iframe.allowFullscreen = true;
+      iframe.setAttribute('allow', 'autoplay; fullscreen');
+      iframe.setAttribute('frameborder', '0');
+      iframe.setAttribute('scrolling', 'no');
 
       iframe.onload = () => {
         showLoader(false);
+        currentIframe = iframe;
+        isMediaLoaded = true;
+        saveRecentMedia(imdbID, mediaType);
+        renderRecentMedia();
       };
 
-      playerContainer.appendChild(iframe);
+      iframe.onerror = () => {
+        showLoader(false);
+        showError('Error loading video. Please try another ID or check if the content is available.');
+        showGuide(true);
+      };
 
+      playerContainer.insertBefore(iframe, playerContainer.firstChild);
       showGuide(false);
-      saveRecentMovie(imdbID);
-      renderRecentMovies();
     }
 
-    searchBtn.addEventListener('click', () => {
+    // Create ripple effect on button click
+    function createRipple(event) {
+      const button = event.currentTarget;
+      const circle = document.createElement('span');
+      const diameter = Math.max(button.clientWidth, button.clientHeight);
+      const radius = diameter / 2;
+      
+      circle.style.width = circle.style.height = `${diameter}px`;
+      circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+      circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
+      circle.classList.add('ripple');
+      
+      const ripple = button.getElementsByClassName('ripple')[0];
+      if (ripple) {
+        ripple.remove();
+      }
+      
+      button.appendChild(circle);
+      
+      // Remove ripple after animation completes
+      setTimeout(() => {
+        circle.remove();
+      }, 600);
+    }
+
+    // Add event listeners for buttons
+    searchBtn.addEventListener('click', (e) => {
+      createRipple(e);
       const imdbID = imdbInput.value.trim();
-      loadVideo(imdbID);
+      if (imdbID) {
+        loadVideo(imdbID);
+      } else {
+        showError('Please enter an IMDb ID to search');
+      }
     });
 
-    clearBtn.addEventListener('click', () => {
+    clearBtn.addEventListener('click', (e) => {
+      createRipple(e);
+      if (!isMediaLoaded && imdbInput.value === '') {
+        showError('Nothing to clear - no media is currently playing');
+        return;
+      }
+      
       imdbInput.value = '';
       showGuide(true);
       playerContainer.style.display = 'none';
-      removeMovieFromURL();
+      removeMediaFromURL();
+      isMediaLoaded = false;
     });
 
-    // On page load, check URL for movie param
+    fullscreenBtn.addEventListener('click', toggleFullscreen);
+    fullscreenBtn.addEventListener('keydown', (e) => {
+      if (e.key === ' ') {
+        e.preventDefault();
+      }
+    });
+
+    // Keyboard event listeners
+    window.addEventListener('keydown', handleKeyDown);
+
+    // On page load, check URL for media params
     window.addEventListener('load', () => {
+      showAdblockModal(); // Show the adblock notice
+      
       const params = new URLSearchParams(window.location.search);
-      const movieID = params.get('movie');
-      if (movieID) {
-        imdbInput.value = movieID;
-        loadVideo(movieID);
+      const mediaID = params.get('id');
+      
+      if (mediaID) {
+        imdbInput.value = mediaID;
+        loadVideo(mediaID);
       } else {
         showGuide(true);
       }
-      renderRecentMovies();
+      renderRecentMedia();
     });
 
-    // Optional: allow pressing Enter in input to search
+    // Allow pressing Enter in input to search
     imdbInput.addEventListener('keyup', (e) => {
       if (e.key === 'Enter') {
         searchBtn.click();
       }
+    });
+
+    // Add ripple effect to all buttons
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(button => {
+      button.addEventListener('click', createRipple);
     });
   </script>
 </body>
