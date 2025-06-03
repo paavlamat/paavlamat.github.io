@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IMDb Streamer</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <!-- Font Awesome for trashcan icon -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
     :root {
       --primary-color: #00c8ff;
@@ -30,8 +36,44 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
       padding: 20px;
+    }
+
+    /* Main content - centered */
+    .main-content {
+      width: 100%;
+      max-width: 1200px;
+      min-height: 70vh;
+      background-color: var(--light-bg);
+      border-radius: var(--border-radius);
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 25px;
+      box-shadow: 0 0 15px rgba(0, 200, 255, 0.4);
+      position: relative;
+      margin-bottom: 30px;
+    }
+
+    /* Reviews section at bottom */
+    .reviews-section {
+      width: 100%;
+      max-width: 1200px;
+      background-color: var(--light-bg);
+      padding: 20px;
+      border-radius: var(--border-radius);
+      box-shadow: 0 0 15px rgba(0, 200, 255, 0.25);
+      margin-top: 20px;
+    }
+
+    /* Review grid layout */
+    .reviews-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
     }
 
     /* Adblock Modal Styles */
@@ -101,7 +143,129 @@
       transform: scale(0.98);
     }
 
-    /* Error Message Styles */
+    /* Edit Review Modal */
+    .edit-review-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .edit-review-content {
+      background-color: var(--light-bg);
+      padding: 25px;
+      border-radius: var(--border-radius);
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 0 20px rgba(0, 200, 255, 0.5);
+      animation: modalFadeIn 0.4s ease-out;
+    }
+
+    .edit-review-content h2 {
+      color: var(--accent-color);
+      margin-bottom: 15px;
+    }
+
+    .edit-review-content p {
+      margin-bottom: 15px;
+      line-height: 1.5;
+    }
+
+    .edit-review-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    .edit-review-buttons button {
+      padding: 8px 20px;
+      border-radius: 5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .edit-review-buttons .confirm-btn {
+      background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+      border: none;
+      color: var(--bg-color);
+    }
+
+    .edit-review-buttons .cancel-btn {
+      background: none;
+      border: 1px solid #666;
+      color: var(--text-color);
+    }
+
+    /* Delete Confirmation Modal */
+    .delete-confirm-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .delete-confirm-content {
+      background-color: var(--light-bg);
+      padding: 25px;
+      border-radius: var(--border-radius);
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 0 20px rgba(0, 200, 255, 0.5);
+      animation: modalFadeIn 0.4s ease-out;
+    }
+
+    .delete-confirm-content h2 {
+      color: #ff4d4d;
+      margin-bottom: 15px;
+    }
+
+    .delete-confirm-content p {
+      margin-bottom: 15px;
+      line-height: 1.5;
+    }
+
+    .delete-confirm-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    .delete-confirm-buttons button {
+      padding: 8px 20px;
+      border-radius: 5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .delete-confirm-buttons .confirm-btn {
+      background: linear-gradient(45deg, #ff4d4d, #ff9999);
+      border: none;
+      color: var(--bg-color);
+    }
+
+    .delete-confirm-buttons .cancel-btn {
+      background: none;
+      border: 1px solid #666;
+      color: var(--text-color);
+    }
+
+    /* Message Styles */
     .error-message {
       position: fixed;
       top: 20px;
@@ -135,6 +299,23 @@
       font-size: 1.2rem;
     }
 
+    .success-message {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--accent-color);
+      color: var(--bg-color);
+      padding: 12px 24px;
+      border-radius: var(--border-radius);
+      box-shadow: 0 4px 12px rgba(0, 255, 133, 0.3);
+      z-index: 1001;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideIn 0.3s ease-out;
+    }
+
     .fade-out {
       animation: fadeOut 0.5s ease-out forwards;
     }
@@ -144,22 +325,6 @@
         opacity: 0;
         transform: translate(-50%, -20px);
       }
-    }
-
-    .main-content {
-      width: 80vw;
-      max-width: 900px;
-      min-height: 70vh;
-      background-color: var(--light-bg);
-      border-radius: var(--border-radius);
-      padding: 30px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 25px;
-      box-shadow: 0 0 15px rgba(0, 200, 255, 0.4);
-      position: relative;
     }
 
     /* Button Animations */
@@ -204,11 +369,18 @@
       align-items: center;
       gap: 18px;
       text-align: center;
-      transition: opacity var(--transition-speed) ease;
+      opacity: 0;
+      transform: translateY(20px);
+      max-height: 0;
+      overflow: hidden;
+      transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
 
-    .guidance-section.hidden {
-      display: none;
+    .guidance-section.visible {
+      opacity: 1;
+      transform: translateY(0);
+      max-height: 1000px;
+      padding: 20px 0;
     }
 
     .guidance-section h2 {
@@ -217,6 +389,7 @@
       padding-left: 12px;
       margin-bottom: 10px;
       align-self: flex-start;
+      animation: fadeInSlideLeft 0.6s ease-out 0.2s both;
     }
 
     .services {
@@ -231,11 +404,20 @@
       padding: 14px 20px;
       border-radius: var(--border-radius);
       box-shadow: 0 0 8px rgba(0, 200, 255, 0.25);
-      transition: background-color 0.3s ease;
+      transition: all 0.3s ease;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeInSlideUp 0.5s ease-out forwards;
     }
+
+    .service:nth-child(1) { animation-delay: 0.3s; }
+    .service:nth-child(2) { animation-delay: 0.4s; }
+    .service:nth-child(3) { animation-delay: 0.5s; }
+    .service:nth-child(4) { animation-delay: 0.6s; }
 
     .service:hover {
       background-color: #2a2a2a;
+      transform: translateY(-3px);
     }
 
     .service h3 {
@@ -250,6 +432,28 @@
       padding: 6px 12px;
       border-radius: 6px;
       font-size: 1rem;
+    }
+
+    @keyframes fadeInSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInSlideLeft {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
     }
 
     .player-container {
@@ -316,7 +520,7 @@
 
     .recent-movies {
       width: 100%;
-      margin-top: 30px;
+      margin-top: auto; /* Push to bottom */
       background-color: var(--light-bg);
       padding: 20px;
       border-radius: var(--border-radius);
@@ -360,8 +564,7 @@
     }
 
     .recent-movies .id-list button:hover {
-      background-color: var(--primary-color);
-      color: var(--bg-color);
+      background-color: #2b2b2b;
       transform: translateY(-2px);
     }
 
@@ -401,23 +604,22 @@
       transition: color var(--transition-speed);
     }
 
-    .recent-movies .id-list button:hover small {
-      color: var(--bg-color);
-      background: none;
-      -webkit-background-clip: unset;
-      -webkit-text-fill-color: unset;
-      background-clip: unset;
-    }
-
     .media-type-badge {
       display: inline-block;
       font-size: 0.7rem;
       padding: 2px 6px;
       border-radius: 4px;
-      background-color: var(--primary-color);
       color: var(--bg-color);
       margin-top: 4px;
       align-self: flex-start;
+    }
+
+    .media-type-badge.movie {
+      background-color: var(--primary-color);
+    }
+
+    .media-type-badge.series {
+      background-color: var(--accent-color);
     }
 
     .media-type-badge.unknown {
@@ -487,6 +689,228 @@
       z-index: 10;
     }
 
+    /* Review Section Styles */
+    .review-section {
+      width: 100%;
+      margin-top: 30px;
+      background-color: var(--light-bg);
+      padding: 20px;
+      border-radius: var(--border-radius);
+      box-shadow: 0 0 15px rgba(0, 200, 255, 0.25);
+      display: none;
+    }
+
+    .review-form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .rating-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .rating-stars {
+      display: flex;
+      gap: 5px;
+    }
+
+    .rating-stars .star {
+      font-size: 24px;
+      color: #555;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .rating-stars .star.active {
+      color: gold;
+    }
+
+    .review-form textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background-color: #232323;
+      color: white;
+      resize: vertical;
+    }
+
+    .name-input-container {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+    }
+
+    .review-form .name-field {
+      flex-grow: 1;
+      position: relative;
+    }
+
+    .review-form .name-field::before {
+      content: "-";
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-color);
+    }
+
+    .review-form .name-input {
+      width: 100%;
+      padding: 10px 10px 10px 20px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background-color: #232323;
+      color: white;
+    }
+
+    .review-form button {
+      padding: 8px 20px;
+      background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+      border: none;
+      border-radius: 5px;
+      color: var(--bg-color);
+      font-weight: 600;
+      cursor: pointer;
+      height: 40px;
+    }
+
+    /* Review Item Styles */
+    .review-item {
+      background-color: #232323;
+      padding: 15px;
+      border-radius: var(--border-radius);
+      border-left: 4px solid var(--primary-color);
+      cursor: pointer;
+      transition: transform 0.2s;
+      position: relative;
+    }
+
+    .review-item:hover {
+      transform: translateY(-3px);
+    }
+
+    .review-item-actions {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .review-item:hover .review-item-actions {
+      opacity: 1;
+    }
+
+    .delete-review-btn {
+      background: none;
+      border: none;
+      color: #ff4d4d;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.3s;
+    }
+
+    .delete-review-btn:hover {
+      transform: scale(1.2);
+      color: #ff0000;
+    }
+
+    .delete-review-btn i {
+      transition: transform 0.3s;
+    }
+
+    .delete-review-btn:hover i {
+      animation: shake 0.5s;
+    }
+
+    @keyframes shake {
+      0% { transform: rotate(0deg); }
+      25% { transform: rotate(10deg); }
+      50% { transform: rotate(-10deg); }
+      75% { transform: rotate(10deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    .review-movie-info {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+
+    .review-movie-poster {
+      width: 50px;
+      height: 75px;
+      object-fit: cover;
+      border-radius: 5px;
+    }
+
+    .review-movie-details {
+      flex: 1;
+    }
+
+    .review-movie-title {
+      font-weight: 600;
+      color: var(--primary-color);
+      margin-bottom: 5px;
+    }
+
+    .review-movie-id {
+      font-size: 0.8rem;
+      color: #aaa;
+    }
+
+    .review-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .review-rating {
+      color: gold;
+      font-weight: normal;
+      font-size: 20px;
+      white-space: nowrap;
+    }
+
+    .review-date {
+      color: #aaa;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    .review-content {
+      line-height: 1.5;
+      font-size: 14px;
+      word-break: break-word;
+    }
+
+    .review-author {
+      display: block;
+      text-align: left;
+      font-style: normal;
+      background: linear-gradient(2deg, var(--primary-color), var(--accent-color));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      transition: color var(--transition-speed);
+      font-size: 14px;
+      margin-top: 10px;
+    }
+
+    .no-reviews {
+      color: #aaa;
+      text-align: center;
+      padding: 20px;
+      grid-column: 1 / -1;
+    }
+
     @keyframes fadeIn {
       from {
         opacity: 0;
@@ -498,12 +922,303 @@
       }
     }
 
-    @media (max-width: 900px) {
+    /* Smooth scroll animation */
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* Updated Recent Reviews header style */
+    .reviews-section h3 {
+      margin-bottom: 12px;
+      color: var(--accent-color);
+      font-size: 1.5rem;
+      border-left: 4px solid var(--accent-color);
+      padding-left: 12px;
+    }
+
+    /* Movie item delete button */
+    .movie-item-actions {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .recent-movies .id-list button:hover .movie-item-actions {
+      opacity: 1;
+    }
+
+    .delete-movie-btn {
+      background: none;
+      border: none;
+      color: #ff4d4d;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.3s;
+      padding: 0;
+      margin: 0;
+    }
+
+    .delete-movie-btn:hover {
+      transform: scale(1.2);
+      color: #ff0000;
+    }
+
+    .delete-movie-btn i {
+      transition: transform 0.3s;
+    }
+
+    .delete-movie-btn:hover i {
+      animation: shake 0.5s;
+    }
+
+    /* Search Results Styles */
+    .initial-search-results {
+      width: 100%;
+      max-height: 300px;
+      overflow-y: auto;
+      background-color: var(--light-bg);
+      border-radius: var(--border-radius);
+      margin: 10px 0;
+      display: none;
+      box-shadow: 0 0 10px rgba(0, 200, 255, 0.2);
+      padding: 10px;
+    }
+
+    .initial-search-results.visible {
+      display: block;
+    }
+
+    /* Hide scrollbar for search results */
+    .initial-search-results::-webkit-scrollbar {
+      display: none;
+    }
+
+    .initial-search-results {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .initial-movie-item {
+      padding: 10px 15px;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .initial-movie-item:hover {
+      background-color: #2a2a2a;
+    }
+
+    .initial-movie-item .poster {
+      width: 40px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .initial-movie-item .info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .initial-movie-item .title {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 0.95rem;
+    }
+
+    .initial-movie-item .year {
+      color: var(--accent-color);
+      font-size: 0.8rem;
+    }
+
+    .initial-movie-item .id {
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: #aaa;
+      background-color: #2a2a2a;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Updated Search Results Styles */
+    .search-results {
+      width: 100%;
+      max-height: 70vh;
+      overflow-y: auto;
+      background-color: var(--light-bg);
+      border-radius: var(--border-radius);
+      margin: 10px 0;
+      display: none;
+      box-shadow: 0 0 15px rgba(0, 200, 255, 0.25);
+      padding: 20px;
+    }
+
+    .search-results.visible {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 25px;
+    }
+
+    /* Hide scrollbar for search results */
+    .search-results::-webkit-scrollbar {
+      display: none;
+    }
+
+    .search-results {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .movie-card {
+      background-color: #232323;
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .movie-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 200, 255, 0.3);
+    }
+
+    .movie-poster {
+      width: 100%;
+      height: 300px;
+      object-fit: cover;
+      border-bottom: 2px solid var(--primary-color);
+    }
+
+    .movie-details {
+      padding: 15px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .movie-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-color);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .movie-year {
+      font-size: 0.9rem;
+      color: var(--accent-color);
+      margin-bottom: 5px;
+    }
+
+    .movie-type {
+      font-size: 0.8rem;
+      color: #aaa;
+      margin-bottom: 5px;
+      text-transform: capitalize;
+    }
+
+    .movie-id {
+      font-size: 0.8rem;
+      color: #aaa;
+      font-family: monospace;
+      background-color: #2a2a2a;
+      padding: 3px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      align-self: flex-start;
+    }
+
+    .no-results {
+      grid-column: 1 / -1;
+      padding: 30px;
+      text-align: center;
+      color: #aaa;
+      font-size: 1.1rem;
+    }
+
+    .search-loading {
+      grid-column: 1 / -1;
+      padding: 30px;
+      text-align: center;
+      color: var(--primary-color);
+      font-size: 1.1rem;
+    }
+
+    .help-button {
+      width: 100%;
+      margin: 15px 0;
+      text-align: center;
+      display: none;
+    }
+
+    .help-button.visible {
+      display: block;
+    }
+
+    .help-button button {
+      background: transparent;
+      border: 2px solid var(--primary-color);
+      color: var(--primary-color);
+      padding: 10px 20px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 0 auto;
+    }
+
+    .help-button button:hover {
+      background-color: rgba(0, 200, 255, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .help-button button:active {
+      transform: translateY(0);
+    }
+
+    .help-button button::before {
+      content: "?";
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      background-color: var(--primary-color);
+      color: var(--bg-color);
+      border-radius: 50%;
+      text-align: center;
+      line-height: 20px;
+      font-weight: bold;
+    }
+
+    @media (max-width: 1200px) {
+      .search-container-wrapper,
       .main-content {
         width: 95vw;
         padding: 20px;
       }
       .recent-movies .id-list {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .reviews-grid {
+        grid-template-columns: 1fr;
+      }
+      .search-results.visible {
         grid-template-columns: repeat(2, 1fr);
       }
     }
@@ -518,6 +1233,19 @@
       .modal-box {
         padding: 20px 15px;
       }
+      .name-input-container {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .review-form button {
+        width: 100%;
+      }
+      .search-results.visible {
+        grid-template-columns: 1fr;
+      }
+      .movie-poster {
+        height: 200px;
+      }
     }
   </style>
 </head>
@@ -531,16 +1259,59 @@
     </div>
   </div>
 
+  <!-- Edit Review Modal -->
+  <div class="edit-review-modal" id="editReviewModal">
+    <div class="edit-review-content">
+      <h2>You've Already Reviewed This</h2>
+      <p>Our records show you've already submitted a review for this movie. Would you like to update your existing review?</p>
+      <div class="edit-review-buttons">
+        <button class="cancel-btn" onclick="closeEditReviewModal()">Cancel</button>
+        <button class="confirm-btn" onclick="confirmEditReview()">Update Review</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="delete-confirm-modal" id="deleteConfirmModal">
+    <div class="delete-confirm-content">
+      <h2>Delete Review</h2>
+      <p>Are you sure you want to delete this review? This action cannot be undone.</p>
+      <div class="delete-confirm-buttons">
+        <button class="cancel-btn" onclick="closeDeleteConfirmModal()">Cancel</button>
+        <button class="confirm-btn" onclick="confirmDeleteReview()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Movie Confirmation Modal -->
+  <div class="delete-confirm-modal" id="deleteMovieConfirmModal">
+    <div class="delete-confirm-content">
+      <h2>Delete Recent Movie</h2>
+      <p>Are you sure you want to delete this movie from your recent list? This action cannot be undone.</p>
+      <div class="delete-confirm-buttons">
+        <button class="cancel-btn" onclick="closeDeleteMovieConfirmModal()">Cancel</button>
+        <button class="confirm-btn" onclick="confirmDeleteMovie()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content - Centered -->
   <div class="main-content">
     <div class="search-container">
       <input
         type="text"
         id="imdbInput"
-        placeholder="Enter IMDb ID e.g. tt4589218"
+        placeholder="Search by title or IMDb ID (e.g. Inception or tt1375666)"
         autocomplete="off"
       />
       <button id="searchBtn">Search</button>
       <button id="clearBtn">Clear</button>
+    </div>
+    <div class="initial-search-results" id="initialSearchResults"></div>
+    <div class="search-results" id="searchResults"></div>
+
+    <div class="help-button" id="helpButton">
+      <button id="helpToggle">I can't find the movie I'm looking for</button>
     </div>
 
     <div class="guidance-section" id="guidanceSection">
@@ -579,13 +1350,67 @@
       <button class="fullscreen-btn" id="fullscreenBtn" aria-label="Toggle fullscreen">⛶</button>
     </div>
 
+    <div class="review-section" id="reviewSection">
+      <h3>Rate & Review</h3>
+      <div class="review-form" id="reviewForm">
+        <div class="rating-container">
+          <span>Rating:</span>
+          <div class="rating-stars" id="ratingStars">
+            <span class="star" data-value="1">★</span>
+            <span class="star" data-value="2">★</span>
+            <span class="star" data-value="3">★</span>
+            <span class="star" data-value="4">★</span>
+            <span class="star" data-value="5">★</span>
+          </div>
+        </div>
+        <textarea id="reviewText" placeholder="Write your review here..." required></textarea>
+        <div class="name-input-container">
+          <div class="name-field">
+            <input type="text" id="reviewerName" class="name-input" placeholder="Your name (required)" required>
+          </div>
+          <button id="submitReviewBtn">Submit Review</button>
+        </div>
+      </div>
+    </div>
+
     <div class="recent-movies" id="recentMoviesSection">
       <h3>Recent Movies</h3>
       <div class="id-list" id="recentMoviesList"></div>
     </div>
   </div>
 
+  <!-- Reviews Section at Bottom -->
+  <div class="reviews-section" id="reviewsSection">
+    <h3>Recent Reviews</h3>
+    <div class="reviews-grid" id="reviewsGrid">
+      <div class="no-reviews">No reviews yet. Be the first to review!</div>
+    </div>
+  </div>
+
   <script>
+    // Initialize Firebase with only the safe-to-expose config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBGSvRU7Bxo5X2qKi1agvM88NxUR3PjHMM",
+      authDomain: "reviews-48f23.firebaseapp.com",
+      projectId: "reviews-48f23"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    let authInitialized = false;
+
+    // Enable offline persistence
+    db.enablePersistence()
+      .catch((err) => {
+        if (err.code == 'failed-precondition') {
+          // Multiple tabs open, persistence can only be enabled in one tab at a time
+          console.log('Persistence failed: multiple tabs open');
+        } else if (err.code == 'unimplemented') {
+          // The current browser does not support all of the features required
+          console.log('Persistence is not supported in this browser');
+        }
+      });
+
+    // DOM elements
     const searchBtn = document.getElementById('searchBtn');
     const clearBtn = document.getElementById('clearBtn');
     const playerContainer = document.getElementById('playerContainer');
@@ -596,15 +1421,369 @@
     const recentMoviesList = document.getElementById('recentMoviesList');
     const fullscreenBtn = document.getElementById('fullscreenBtn');
     const adblockModal = document.getElementById('adblockModal');
+    const reviewSection = document.getElementById('reviewSection');
+    const reviewForm = document.getElementById('reviewForm');
+    const ratingStars = document.getElementById('ratingStars');
+    const reviewerName = document.getElementById('reviewerName');
+    const reviewText = document.getElementById('reviewText');
+    const submitReviewBtn = document.getElementById('submitReviewBtn');
+    const reviewsGrid = document.getElementById('reviewsGrid');
+    const editReviewModal = document.getElementById('editReviewModal');
+    const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+    const deleteMovieConfirmModal = document.getElementById('deleteMovieConfirmModal');
+    const initialSearchResults = document.getElementById('initialSearchResults');
+    const searchResults = document.getElementById('searchResults');
+    const helpButton = document.getElementById('helpButton');
+    const helpToggle = document.getElementById('helpToggle');
 
-    // Put your OMDb API key here:
+    // App constants and variables
     const OMDB_API_KEY = '43f4542f';
+    const MAX_REVIEWS = 45; // Maximum number of reviews to keep
     let currentIframe = null;
     let isMediaLoaded = false;
+    let currentImdbID = null;
+    let selectedRating = 0;
+    let currentMovieDetails = null;
+    let allMovieDetailsCache = {};
+    let userIP = null;
+    let isTypingReview = false;
+    let pendingReviewData = null;
+    let existingReviewDocId = null;
+    let reviewToDeleteId = null;
+    let movieToDeleteId = null;
+    let currentUserId = null;
+    let searchTimeout = null;
+    let hasSearched = false;
+    let helpButtonClicked = false;
 
-    // Show adblock modal on page load
+    /* Initialize Firebase Authentication */
+    async function initializeAuth() {
+      if (authInitialized) return;
+      try {
+        await firebase.auth().signInAnonymously();
+        authInitialized = true;
+        currentUserId = firebase.auth().currentUser?.uid;
+      } catch (error) {
+        console.error("Authentication error:", error);
+      }
+    }
+
+    /* Get User IP Address */
+    async function getUserIP() {
+      if (userIP) return userIP;
+      
+      try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        userIP = data.ip;
+        return userIP;
+      } catch (error) {
+        console.error("Error fetching IP:", error);
+        // Fallback to a random ID if IP fetch fails
+        userIP = 'user-' + Math.random().toString(36).substring(2, 15);
+        return userIP;
+      }
+    }
+
+    /* Check if user has already reviewed a movie */
+    async function hasUserReviewed(imdbID) {
+      const ip = await getUserIP();
+      await initializeAuth();
+      const userId = firebase.auth().currentUser?.uid;
+      
+      try {
+        // First check by user ID (if authenticated)
+        if (userId) {
+          const userQuery = await db.collection('reviews')
+            .where('imdbID', '==', imdbID)
+            .where('userId', '==', userId)
+            .limit(1)
+            .get();
+          
+          if (!userQuery.empty) {
+            return {
+              exists: true,
+              docId: userQuery.docs[0].id,
+              review: userQuery.docs[0].data()
+            };
+          }
+        }
+        
+        // Then check by IP address
+        const ipQuery = await db.collection('reviews')
+          .where('imdbID', '==', imdbID)
+          .where('userIP', '==', ip)
+          .limit(1)
+          .get();
+        
+        if (!ipQuery.empty) {
+          return {
+            exists: true,
+            docId: ipQuery.docs[0].id,
+            review: ipQuery.docs[0].data()
+          };
+        }
+        
+        return { exists: false };
+      } catch (error) {
+        console.error("Error checking existing review:", error);
+        return { exists: false };
+      }
+    }
+
+    /* Review Functions */
+    async function saveReview(imdbID, rating, reviewerName, reviewText) {
+      await initializeAuth();
+      const ip = await getUserIP();
+      const userId = firebase.auth().currentUser?.uid;
+      
+      try {
+        // First delete existing review if updating
+        if (existingReviewDocId) {
+          await db.collection('reviews').doc(existingReviewDocId).delete();
+        }
+        
+        // Get current review count
+        const reviewsSnapshot = await db.collection('reviews').get();
+        const count = reviewsSnapshot.size;
+        
+        // If we've reached the maximum, delete the oldest review
+        if (count >= MAX_REVIEWS) {
+          const oldestReview = await db.collection('reviews')
+            .orderBy('date')
+            .limit(1)
+            .get();
+            
+          if (!oldestReview.empty) {
+            await db.collection('reviews').doc(oldestReview.docs[0].id).delete();
+          }
+        }
+        
+        // Create new review
+        await db.collection('reviews').add({
+          imdbID,
+          rating,
+          reviewerName,
+          text: reviewText,
+          date: firebase.firestore.FieldValue.serverTimestamp(),
+          userId: userId,
+          userIP: ip
+        });
+        
+        showSuccess(existingReviewDocId ? 'Review updated successfully!' : 'Review submitted successfully!');
+        displayAllReviews();
+      } catch (error) {
+        console.error("Error saving review:", error);
+        showError('Failed to submit review. Please try again.');
+      } finally {
+        existingReviewDocId = null;
+      }
+    }
+
+    /* Delete Review Functions */
+    function showDeleteConfirmModal(reviewId) {
+      reviewToDeleteId = reviewId;
+      deleteConfirmModal.style.display = 'flex';
+    }
+
+    function closeDeleteConfirmModal() {
+      deleteConfirmModal.style.display = 'none';
+      reviewToDeleteId = null;
+    }
+
+    async function confirmDeleteReview() {
+      if (!reviewToDeleteId) return;
+      
+      try {
+        await db.collection('reviews').doc(reviewToDeleteId).delete();
+        showSuccess('Review deleted successfully!');
+        displayAllReviews();
+      } catch (error) {
+        console.error("Error deleting review:", error);
+        showError('Failed to delete review. Please try again.');
+      } finally {
+        closeDeleteConfirmModal();
+      }
+    }
+
+    /* Delete Movie Functions */
+    function showDeleteMovieConfirmModal(movieId) {
+      movieToDeleteId = movieId;
+      deleteMovieConfirmModal.style.display = 'flex';
+    }
+
+    function closeDeleteMovieConfirmModal() {
+      deleteMovieConfirmModal.style.display = 'none';
+      movieToDeleteId = null;
+    }
+
+    function confirmDeleteMovie() {
+      if (!movieToDeleteId) return;
+      
+      try {
+        let recent = JSON.parse(localStorage.getItem('recentMedia')) || [];
+        recent = recent.filter(item => item.id !== movieToDeleteId);
+        localStorage.setItem('recentMedia', JSON.stringify(recent));
+        showSuccess('Movie removed from recent list!');
+        renderRecentMedia();
+      } catch (error) {
+        console.error("Error deleting movie:", error);
+        showError('Failed to delete movie. Please try again.');
+      } finally {
+        closeDeleteMovieConfirmModal();
+      }
+    }
+
+    function showEditReviewModal() {
+      editReviewModal.style.display = 'flex';
+    }
+
+    function closeEditReviewModal() {
+      editReviewModal.style.display = 'none';
+      pendingReviewData = null;
+    }
+
+    async function confirmEditReview() {
+      if (!pendingReviewData || !currentImdbID) return;
+      
+      const { rating, reviewerName, text } = pendingReviewData;
+      
+      try {
+        await saveReview(currentImdbID, rating, reviewerName, text);
+        closeEditReviewModal();
+        
+        // Reset form
+        reviewerName.value = '';
+        reviewText.value = '';
+        selectedRating = 0;
+        updateStars(0);
+      } catch (error) {
+        console.error("Error updating review:", error);
+        showError('Failed to update review. Please try again.');
+      }
+    }
+
+    async function displayAllReviews() {
+      reviewsGrid.innerHTML = '<div class="no-reviews">Loading reviews...</div>';
+      
+      const ip = await getUserIP();
+      await initializeAuth();
+      const userId = firebase.auth().currentUser?.uid;
+      
+      db.collection('reviews')
+        .orderBy('date', 'desc')
+        .limit(MAX_REVIEWS)
+        .onSnapshot(async (snapshot) => {
+          if (snapshot.empty) {
+            reviewsGrid.innerHTML = '<div class="no-reviews">No reviews yet. Be the first to review!</div>';
+            return;
+          }
+          
+          // Process each review
+          reviewsGrid.innerHTML = '';
+          
+          const reviews = [];
+          snapshot.forEach(doc => reviews.push({ id: doc.id, ...doc.data() }));
+          
+          // Get all unique movie IDs from reviews
+          const uniqueMovieIds = [...new Set(reviews.map(review => review.imdbID))];
+          
+          // Fetch all movie details in parallel
+          const movieDetailsPromises = uniqueMovieIds.map(id => fetchMediaDetails(id));
+          await Promise.all(movieDetailsPromises);
+          
+          // Create review items
+          for (const review of reviews) {
+            const movieDetails = allMovieDetailsCache[review.imdbID] || 
+              { title: 'Unknown Movie', poster: null, year: '' };
+            
+            const reviewDate = review.date?.toDate() || new Date();
+            const formattedDate = reviewDate.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+            
+            const reviewItem = document.createElement('div');
+            reviewItem.className = 'review-item';
+            
+            // Check if this review belongs to the current user
+            const isCurrentUserReview = (review.userId === userId) || (review.userIP === ip);
+            
+            reviewItem.innerHTML = `
+              <div class="review-movie-info">
+                ${movieDetails.poster ? `<img class="review-movie-poster" src="${movieDetails.poster}" alt="Poster">` : ''}
+                <div class="review-movie-details">
+                  <div class="review-movie-title">${movieDetails.title}${movieDetails.year ? ` (${movieDetails.year})` : ''}</div>
+                  <div class="review-movie-id">${review.imdbID}</div>
+                </div>
+              </div>
+              <div class="review-header">
+                <div class="review-rating">${'★'.repeat(review.rating)}${'✰'.repeat(5 - review.rating)}</div>
+                <div class="review-date">${formattedDate}</div>
+              </div>
+              <div class="review-content">${review.text}</div>
+              <span class="review-author">-${review.reviewerName || 'Anonymous'}</span>
+              ${isCurrentUserReview ? `
+                <div class="review-item-actions">
+                  <button class="delete-review-btn" onclick="event.stopPropagation(); showDeleteConfirmModal('${review.id}')">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              ` : ''}
+            `;
+            
+            reviewItem.onclick = () => {
+              imdbInput.value = review.imdbID;
+              loadVideo(review.imdbID);
+              // Smooth scroll to top
+              window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+              });
+            };
+            
+            reviewsGrid.appendChild(reviewItem);
+          }
+        }, (error) => {
+          console.error("Error loading reviews:", error);
+          reviewsGrid.innerHTML = '<div class="no-reviews">Error loading reviews. Please refresh.</div>';
+        });
+    }
+
+    /* Star Rating System */
+    function initStarRating() {
+      const stars = ratingStars.querySelectorAll('.star');
+      
+      stars.forEach(star => {
+        star.addEventListener('click', () => {
+          selectedRating = parseInt(star.getAttribute('data-value'));
+          updateStars(selectedRating);
+        });
+        
+        star.addEventListener('mouseover', () => {
+          const hoverValue = parseInt(star.getAttribute('data-value'));
+          updateStars(hoverValue);
+        });
+        
+        star.addEventListener('mouseout', () => {
+          updateStars(selectedRating);
+        });
+      });
+    }
+    
+    function updateStars(rating) {
+      const stars = ratingStars.querySelectorAll('.star');
+      stars.forEach(star => {
+        const value = parseInt(star.getAttribute('data-value'));
+        star.classList.toggle('active', value <= rating);
+      });
+    }
+
+    /* UI Functions */
     function showAdblockModal() {
-      // Only show if it hasn't been shown in this session
       if (sessionStorage.getItem('adblockModalShown') !== 'true') {
         adblockModal.style.display = 'flex';
         sessionStorage.setItem('adblockModalShown', 'true');
@@ -615,27 +1794,59 @@
       adblockModal.style.display = 'none';
     }
 
-    // Show error message
     function showError(message) {
       const errorEl = document.createElement('div');
       errorEl.className = 'error-message';
       errorEl.textContent = message;
       document.body.appendChild(errorEl);
       
-      // Remove after 3 seconds
       setTimeout(() => {
         errorEl.classList.add('fade-out');
         setTimeout(() => errorEl.remove(), 500);
       }, 3000);
     }
 
+    function showSuccess(message) {
+      const successEl = document.createElement('div');
+      successEl.className = 'success-message';
+      successEl.textContent = message;
+      document.body.appendChild(successEl);
+      
+      setTimeout(() => {
+        successEl.classList.add('fade-out');
+        setTimeout(() => successEl.remove(), 500);
+      }, 3000);
+    }
+
+    function toggleHelpButton(show) {
+      if (show && !helpButtonClicked) {
+        helpButton.classList.add('visible');
+      } else {
+        helpButton.classList.remove('visible');
+      }
+    }
+
+    function toggleGuidance(show) {
+      if (show) {
+        guidanceSection.classList.add('visible');
+        helpButtonClicked = true;
+        helpButton.classList.remove('visible');
+      } else {
+        guidanceSection.classList.remove('visible');
+        helpButtonClicked = false;
+        toggleHelpButton(true);
+      }
+    }
+
     function showGuide(show) {
       if (show) {
-        guidanceSection.classList.remove('hidden');
+        guidanceSection.classList.add('visible');
         playerContainer.style.display = 'none';
+        reviewSection.style.display = 'none';
       } else {
-        guidanceSection.classList.add('hidden');
+        guidanceSection.classList.remove('visible');
         playerContainer.style.display = 'flex';
+        reviewSection.style.display = 'block';
       }
     }
 
@@ -643,23 +1854,219 @@
       loader.style.display = show ? 'block' : 'none';
     }
 
+    /* Movie Data Functions */
     async function fetchMediaDetails(imdbID) {
+      if (allMovieDetailsCache[imdbID]) {
+        return allMovieDetailsCache[imdbID];
+      }
+
       try {
         const response = await fetch(
           `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&i=${imdbID}`
         );
         const data = await response.json();
         if (data.Response === 'True') {
-          return {
+          const details = {
             title: data.Title,
             type: data.Type === 'movie' ? 'movie' : 'series',
             poster: data.Poster && data.Poster !== 'N/A' ? data.Poster : null,
+            year: data.Year
           };
+          allMovieDetailsCache[imdbID] = details;
+          return details;
         } else {
-          return { title: 'Unknown Title', type: 'unknown', poster: null };
+          return { title: 'Unknown Title', type: 'unknown', poster: null, year: '' };
         }
       } catch {
-        return { title: 'Error Fetching Title', type: 'unknown', poster: null };
+        return { title: 'Error Fetching Title', type: 'unknown', poster: null, year: '' };
+      }
+    }
+
+    // Fuzzy search function to handle typos and partial matches
+    function fuzzyMatch(query, title) {
+      if (!query || !title) return false;
+      
+      // Convert to lowercase for case-insensitive comparison
+      query = query.toLowerCase().trim();
+      title = title.toLowerCase().trim();
+      
+      // Exact match
+      if (title.includes(query)) return true;
+      
+      // Remove common words and punctuation
+      const commonWords = ['the', 'a', 'an', 'and', 'of', 'in', 'at', 'on', 'for'];
+      const cleanQuery = query.split(' ').filter(word => !commonWords.includes(word)).join(' ');
+      const cleanTitle = title.split(' ').filter(word => !commonWords.includes(word)).join(' ');
+      
+      if (cleanTitle.includes(cleanQuery)) return true;
+      
+      // Check for partial matches (at least 60% of words match)
+      const queryWords = cleanQuery.split(' ').filter(Boolean);
+      const titleWords = cleanTitle.split(' ').filter(Boolean);
+      
+      if (queryWords.length === 0 || titleWords.length === 0) return false;
+      
+      const matchingWords = queryWords.filter(qWord => 
+        titleWords.some(tWord => tWord.includes(qWord))
+      );
+      
+      return matchingWords.length / queryWords.length >= 0.6;
+    }
+
+    async function searchByTitle(query, isInitialSearch = false) {
+      // Only trim whitespace from ends, preserve internal spaces
+      query = query.trim();
+      hasSearched = true;
+      
+      if (!query || query.length < 3) {
+        if (isInitialSearch) {
+          initialSearchResults.innerHTML = '<div class="initial-movie-item">Type at least 3 characters to search</div>';
+          initialSearchResults.classList.add('visible');
+        } else {
+          searchResults.innerHTML = '<div class="no-results">Type at least 3 characters to search</div>';
+          searchResults.classList.add('visible');
+        }
+        toggleHelpButton(false);
+        return;
+      }
+
+      if (isInitialSearch) {
+        initialSearchResults.innerHTML = '<div class="initial-movie-item">Searching...</div>';
+        initialSearchResults.classList.add('visible');
+      } else {
+        searchResults.innerHTML = '<div class="search-loading">Searching...</div>';
+        searchResults.classList.add('visible');
+        // Hide initial search results when showing big results
+        initialSearchResults.classList.remove('visible');
+      }
+
+      try {
+        // First try searching with the exact query
+        let response = await fetch(
+          `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=${encodeURIComponent(query)}`
+        );
+        
+        let data = await response.json();
+
+        // Filter results to only include movies and series
+        if (data.Response === 'True' && data.Search && data.Search.length > 0) {
+          data.Search = data.Search.filter(item => item.Type === 'movie' || item.Type === 'series');
+        }
+
+        // If no results after filtering, try a more flexible search
+        if (data.Response !== 'True' || !data.Search || data.Search.length === 0) {
+          // Try with wildcard search
+          response = await fetch(
+            `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=${encodeURIComponent(query)}*`
+          );
+          data = await response.json();
+          
+          // Filter again
+          if (data.Response === 'True' && data.Search && data.Search.length > 0) {
+            data.Search = data.Search.filter(item => item.Type === 'movie' || item.Type === 'series');
+          }
+        }
+
+        // If still no results, try with first word only
+        if (data.Response !== 'True' || !data.Search || data.Search.length === 0) {
+          const firstWord = query.split(' ')[0];
+          if (firstWord.length >= 3) {
+            response = await fetch(
+              `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=${encodeURIComponent(firstWord)}*`
+            );
+            data = await response.json();
+            
+            // Filter again
+            if (data.Response === 'True' && data.Search && data.Search.length > 0) {
+              data.Search = data.Search.filter(item => item.Type === 'movie' || item.Type === 'series');
+            }
+          }
+        }
+
+        if (data.Response === 'True' && data.Search && data.Search.length > 0) {
+          // Sort results by relevance (using our fuzzy matching)
+          data.Search.sort((a, b) => {
+            const aMatch = fuzzyMatch(query, a.Title) ? 1 : 0;
+            const bMatch = fuzzyMatch(query, b.Title) ? 1 : 0;
+            
+            // Also consider year (newer first)
+            const yearDiff = parseInt(b.Year) - parseInt(a.Year);
+            
+            // Primary sort by match quality, secondary by year
+            return (bMatch - aMatch) || yearDiff;
+          });
+
+          if (isInitialSearch) {
+            initialSearchResults.innerHTML = '';
+            
+            // Show top 5 most relevant results in initial search
+            const topResults = data.Search.slice(0, 5);
+            
+            topResults.forEach(item => {
+              const movieItem = document.createElement('div');
+              movieItem.className = 'initial-movie-item';
+              movieItem.innerHTML = `
+                <img src="${item.Poster !== 'N/A' ? item.Poster : 'https://via.placeholder.com/40x60?text=No+Poster'}" 
+                     alt="${item.Title}" 
+                     class="poster">
+                <div class="info">
+                  <div class="title">${item.Title}</div>
+                  <div class="year">${item.Year}</div>
+                </div>
+                <div class="id">${item.imdbID}</div>
+              `;
+              movieItem.addEventListener('click', () => {
+                imdbInput.value = item.imdbID;
+                initialSearchResults.classList.remove('visible');
+                loadVideo(item.imdbID);
+              });
+              initialSearchResults.appendChild(movieItem);
+            });
+          } else {
+            searchResults.innerHTML = '';
+            
+            // Show all results in main search
+            data.Search.forEach(item => {
+              const movieCard = document.createElement('div');
+              movieCard.className = 'movie-card';
+              movieCard.innerHTML = `
+                <img src="${item.Poster !== 'N/A' ? item.Poster : 'https://via.placeholder.com/300x450?text=No+Poster'}" 
+                     alt="${item.Title}" 
+                     class="movie-poster">
+                <div class="movie-details">
+                  <div class="movie-title">${item.Title}</div>
+                  <div class="movie-year">${item.Year}</div>
+                  <div class="movie-type">${item.Type === 'movie' ? 'Movie' : 'Series'}</div>
+                  <div class="movie-id">${item.imdbID}</div>
+                </div>
+              `;
+              movieCard.addEventListener('click', () => {
+                imdbInput.value = item.imdbID;
+                searchResults.classList.remove('visible');
+                loadVideo(item.imdbID);
+              });
+              searchResults.appendChild(movieCard);
+            });
+            
+            // Show help button at the bottom of search results
+            toggleHelpButton(true);
+          }
+        } else {
+          if (isInitialSearch) {
+            initialSearchResults.innerHTML = '<div class="initial-movie-item">No movies or series found</div>';
+          } else {
+            searchResults.innerHTML = '<div class="no-results">No movies or series found</div>';
+          }
+          toggleHelpButton(true);
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+        if (isInitialSearch) {
+          initialSearchResults.innerHTML = '<div class="initial-movie-item">Error fetching results. Please try again.</div>';
+        } else {
+          searchResults.innerHTML = '<div class="no-results">Error fetching results. Please try again.</div>';
+        }
+        toggleHelpButton(true);
       }
     }
 
@@ -672,10 +2079,7 @@
       recentMoviesSection.style.display = 'block';
       recentMoviesList.innerHTML = '';
 
-      // Limit recent media to 21 max
       recent = recent.slice(0, 21);
-
-      // Fetch details for all recent media concurrently
       const mediaItems = await Promise.all(recent.map(item => fetchMediaDetails(item.id)));
 
       recent.forEach((item, index) => {
@@ -697,7 +2101,12 @@
           <div class="movie-info">
             <strong>${title}</strong>
             <small>${id}</small>
-            <span class="media-type-badge ${isUnknown ? 'unknown' : ''}">${isUnknown ? 'Unknown' : (type === 'movie' ? 'Movie' : 'Series')}</span>
+            <span class="media-type-badge ${type === 'movie' ? 'movie' : (type === 'series' ? 'series' : 'unknown')}">${isUnknown ? 'Unknown' : (type === 'movie' ? 'Movie' : 'Series')}</span>
+          </div>
+          <div class="movie-item-actions">
+            <button class="delete-movie-btn" onclick="event.stopPropagation(); showDeleteMovieConfirmModal('${id}')">
+              <i class="fas fa-trash" style="color: #ff4d4d; font-size: 0.9rem;"></i>
+            </button>
           </div>
         `;
 
@@ -707,17 +2116,15 @@
 
     function saveRecentMedia(imdbID, type) {
       let recent = JSON.parse(localStorage.getItem('recentMedia')) || [];
-      // Remove if exists
       recent = recent.filter(item => item.id !== imdbID);
-      // Add to front
       recent.unshift({ id: imdbID, type });
-      // Keep only 21 recent movies max
       if (recent.length > 21) {
         recent = recent.slice(0, 21);
       }
       localStorage.setItem('recentMedia', JSON.stringify(recent));
     }
 
+    /* Player Functions */
     function updateURL(imdbID) {
       const url = new URL(window.location);
       url.searchParams.set('id', imdbID);
@@ -731,7 +2138,7 @@
     }
 
     function toggleFullscreen() {
-      if (!isMediaLoaded) return;
+      if (!isMediaLoaded || isTypingReview) return;
       
       if (!document.fullscreenElement) {
         playerContainer.requestFullscreen().catch(err => {
@@ -743,13 +2150,16 @@
     }
 
     function handleKeyDown(e) {
-      // Prevent spacebar from scrolling
+      // Allow spacebar in input fields
+      if (e.target === imdbInput || e.target === reviewText || e.target === reviewerName) {
+        return;
+      }
+      
       if (e.key === ' ') {
         e.preventDefault();
       }
       
-      // Toggle fullscreen with F key only when media is loaded
-      if (e.key.toLowerCase() === 'f' && isMediaLoaded) {
+      if (e.key.toLowerCase() === 'f' && isMediaLoaded && !isTypingReview) {
         toggleFullscreen();
       }
     }
@@ -761,25 +2171,23 @@
         return;
       }
 
+      currentImdbID = imdbID;
       updateURL(imdbID);
 
       showLoader(true);
       playerContainer.style.display = 'flex';
-
-      // Remove old iframe(s)
       playerContainer.querySelectorAll('iframe').forEach((el) => el.remove());
 
-      // First determine if this is a movie or series
       let mediaType = 'movie';
+      let mediaDetails;
       try {
-        const mediaDetails = await fetchMediaDetails(imdbID);
+        mediaDetails = await fetchMediaDetails(imdbID);
         mediaType = mediaDetails.type === 'unknown' ? 'movie' : mediaDetails.type;
       } catch (e) {
         console.log("Couldn't determine media type, defaulting to movie");
       }
 
       const iframe = document.createElement('iframe');
-      // Use the appropriate endpoint based on detected media type
       const baseUrl = mediaType === 'movie'
         ? `https://vidsrc.xyz/embed/movie/${imdbID}`
         : `https://vidsrc.xyz/embed/tv/${imdbID}`;
@@ -796,6 +2204,9 @@
         isMediaLoaded = true;
         saveRecentMedia(imdbID, mediaType);
         renderRecentMedia();
+        
+        // Check for existing review when video loads
+        checkForExistingReview();
       };
 
       iframe.onerror = () => {
@@ -808,7 +2219,26 @@
       showGuide(false);
     }
 
-    // Create ripple effect on button click
+    async function checkForExistingReview() {
+      if (!currentImdbID) return;
+      
+      const existingReview = await hasUserReviewed(currentImdbID);
+      if (existingReview.exists) {
+        existingReviewDocId = existingReview.docId;
+        reviewerName.value = existingReview.review.reviewerName || '';
+        reviewText.value = existingReview.review.text;
+        selectedRating = existingReview.review.rating;
+        updateStars(selectedRating);
+      } else {
+        existingReviewDocId = null;
+        reviewerName.value = '';
+        reviewText.value = '';
+        selectedRating = 0;
+        updateStars(0);
+      }
+    }
+
+    /* Utility Functions */
     function createRipple(event) {
       const button = event.currentTarget;
       const circle = document.createElement('span');
@@ -827,35 +2257,173 @@
       
       button.appendChild(circle);
       
-      // Remove ripple after animation completes
       setTimeout(() => {
         circle.remove();
       }, 600);
     }
 
-    // Add event listeners for buttons
+    function handleSearch(isInitialSearch = false) {
+      const input = imdbInput.value.trim();
+      hasSearched = true;
+      
+      if (!input) {
+        if (isInitialSearch) {
+          initialSearchResults.classList.remove('visible');
+        } else {
+          searchResults.classList.remove('visible');
+        }
+        toggleHelpButton(false);
+        return;
+      }
+
+      // Check if input is an IMDb ID (starts with tt followed by numbers)
+      if (/^tt\d+$/.test(input)) {
+        // It's an ID, load directly
+        loadVideo(input);
+      } else {
+        // It's a title search
+        if (input.length < 3) {
+          if (isInitialSearch) {
+            initialSearchResults.innerHTML = '<div class="initial-movie-item">Type at least 3 characters to search</div>';
+            initialSearchResults.classList.add('visible');
+          } else {
+            searchResults.innerHTML = '<div class="no-results">Type at least 3 characters to search</div>';
+            searchResults.classList.add('visible');
+          }
+          toggleHelpButton(false);
+          return;
+        }
+
+        if (isInitialSearch) {
+          initialSearchResults.innerHTML = '<div class="initial-movie-item">Searching...</div>';
+          initialSearchResults.classList.add('visible');
+        } else {
+          searchResults.innerHTML = '<div class="search-loading">Searching...</div>';
+          searchResults.classList.add('visible');
+          initialSearchResults.classList.remove('visible');
+        }
+
+        // Clear previous timeout if it exists
+        if (searchTimeout) {
+          clearTimeout(searchTimeout);
+        }
+        
+        // Set new timeout with longer delay for better UX
+        searchTimeout = setTimeout(() => {
+          searchByTitle(input, isInitialSearch);
+        }, 800);
+      }
+    }
+
+    /* Event Listeners */
     searchBtn.addEventListener('click', (e) => {
       createRipple(e);
-      const imdbID = imdbInput.value.trim();
-      if (imdbID) {
-        loadVideo(imdbID);
-      } else {
-        showError('Please enter an IMDb ID to search');
-      }
+      handleSearch(false);
     });
 
     clearBtn.addEventListener('click', (e) => {
       createRipple(e);
       if (!isMediaLoaded && imdbInput.value === '') {
-        showError('Nothing to clear - no media is currently playing');
-        return;
+          showError('Nothing to clear - no media is currently playing');
+          return;
       }
       
       imdbInput.value = '';
-      showGuide(true);
       playerContainer.style.display = 'none';
+      reviewSection.style.display = 'none';
+      searchResults.classList.remove('visible');
+      initialSearchResults.classList.remove('visible');
       removeMediaFromURL();
       isMediaLoaded = false;
+      currentImdbID = null;
+      existingReviewDocId = null;
+      
+      // Restore guidance section if help button was clicked before
+      if (helpButtonClicked) {
+          guidanceSection.classList.add('visible');
+          helpButton.classList.remove('visible');
+      } else {
+          guidanceSection.classList.remove('visible');
+          toggleHelpButton(true);
+      }
+    });
+
+    helpToggle.addEventListener('click', () => {
+      toggleGuidance(!guidanceSection.classList.contains('visible'));
+    });
+
+    submitReviewBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      
+      if (!currentImdbID) {
+        showError('No movie selected to review');
+        return;
+      }
+      
+      if (selectedRating === 0) {
+        showError('Please select a rating');
+        return;
+      }
+      
+      const name = reviewerName.value.trim();
+      if (!name) {
+        showError('Please enter your name');
+        return;
+      }
+      
+      const reviewContent = reviewText.value.trim();
+      if (!reviewContent) {
+        showError('Please write your review');
+        return;
+      }
+      
+      // Check for existing review (either by user ID or IP)
+      const existingReview = await hasUserReviewed(currentImdbID);
+      
+      if (existingReview.exists) {
+        // Show modal asking if they want to edit their existing review
+        pendingReviewData = {
+          rating: selectedRating,
+          reviewerName: name,
+          text: reviewContent
+        };
+        existingReviewDocId = existingReview.docId;
+        showEditReviewModal();
+        return;
+      }
+      
+      // If no existing review, save as new review
+      await saveReview(currentImdbID, selectedRating, name, reviewContent);
+      
+      // Reset form
+      reviewerName.value = '';
+      reviewText.value = '';
+      selectedRating = 0;
+      updateStars(0);
+    });
+
+    // Handle Enter key in review textarea and name field
+    reviewText.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitReviewBtn.click();
+      }
+    });
+
+    reviewerName.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitReviewBtn.click();
+      }
+    });
+
+    // Track when user is typing in review
+    reviewText.addEventListener('focus', () => {
+      isTypingReview = true;
+    });
+    
+    reviewText.addEventListener('blur', () => {
+      isTypingReview = false;
     });
 
     fullscreenBtn.addEventListener('click', toggleFullscreen);
@@ -865,29 +2433,33 @@
       }
     });
 
-    // Keyboard event listeners
     window.addEventListener('keydown', handleKeyDown);
 
-    // On page load, check URL for media params
-    window.addEventListener('load', () => {
-      showAdblockModal(); // Show the adblock notice
-      
-      const params = new URLSearchParams(window.location.search);
-      const mediaID = params.get('id');
-      
-      if (mediaID) {
-        imdbInput.value = mediaID;
-        loadVideo(mediaID);
+    imdbInput.addEventListener('input', (e) => {
+      // Only show search results if not typing an ID (starts with tt)
+      if (!imdbInput.value.startsWith('tt')) {
+        handleSearch(true);
       } else {
-        showGuide(true);
+        initialSearchResults.classList.remove('visible');
       }
-      renderRecentMedia();
     });
 
-    // Allow pressing Enter in input to search
-    imdbInput.addEventListener('keyup', (e) => {
+    imdbInput.addEventListener('keydown', (e) => {
+      // Allow spacebar in the input field
+      if (e.key === ' ' && e.target === imdbInput) {
+        return;
+      }
+      
       if (e.key === 'Enter') {
-        searchBtn.click();
+        handleSearch(false);
+      }
+    });
+
+    // Close search results when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!searchResults.contains(e.target) && e.target !== imdbInput && !initialSearchResults.contains(e.target)) {
+        searchResults.classList.remove('visible');
+        initialSearchResults.classList.remove('visible');
       }
     });
 
@@ -895,6 +2467,24 @@
     const buttons = document.querySelectorAll('button');
     buttons.forEach(button => {
       button.addEventListener('click', createRipple);
+    });
+
+    /* Initialize App */
+    window.addEventListener('load', () => {
+      showAdblockModal();
+      initStarRating();
+      initializeAuth().then(() => {
+        displayAllReviews();
+      });
+      
+      const params = new URLSearchParams(window.location.search);
+      const mediaID = params.get('id');
+      
+      if (mediaID) {
+        imdbInput.value = mediaID;
+        loadVideo(mediaID);
+      }
+      renderRecentMedia();
     });
   </script>
 </body>
