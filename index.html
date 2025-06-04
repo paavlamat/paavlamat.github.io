@@ -2388,13 +2388,14 @@
       }
 
       const iframe = document.createElement('iframe');
+      // Updated video source URLs to use a more reliable provider
       const baseUrl = mediaType === 'movie'
-        ? `https://vidsrc.xyz/embed/movie/${imdbID}`
-        : `https://vidsrc.xyz/embed/tv/${imdbID}`;
+        ? `https://vidsrc.to/embed/movie/${imdbID}`
+        : `https://vidsrc.to/embed/tv/${imdbID}`;
       
-      iframe.src = `${baseUrl}?controls=0`;
+      iframe.src = `${baseUrl}`;
       iframe.allowFullscreen = true;
-      iframe.setAttribute('allow', 'autoplay; fullscreen');
+      iframe.setAttribute('allow', 'fullscreen');
       iframe.setAttribute('frameborder', '0');
       iframe.setAttribute('scrolling', 'no');
 
