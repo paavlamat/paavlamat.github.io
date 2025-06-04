@@ -627,6 +627,12 @@
       color: white;
     }
 
+    .release-date {
+      font-size: 0.8rem;
+      color: #aaa;
+      margin-top: 2px;
+    }
+
     /* Ripple Effect */
     .ripple {
       position: absolute;
@@ -1206,13 +1212,104 @@
       font-weight: bold;
     }
 
+    /* Trending Movies Section */
+    .trending-movies {
+      width: 100%;
+      background-color: var(--light-bg);
+      padding: 20px;
+      border-radius: var(--border-radius);
+      box-shadow: 0 0 15px rgba(0, 200, 255, 0.25);
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .trending-movies.visible {
+      display: block;
+    }
+
+    .trending-movies h3 {
+      margin-bottom: 12px;
+      color: var(--primary-color);
+      font-size: 1.5rem;
+      border-left: 4px solid var(--primary-color);
+      padding-left: 12px;
+    }
+
+    .trending-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px 20px;
+    }
+
+    .trending-list button {
+      background-color: #232323;
+      border: none;
+      color: var(--text-color);
+      padding: 14px 20px;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 0 8px rgba(0, 200, 255, 0.25);
+      font-size: 1rem;
+      text-align: left;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .trending-list button:hover {
+      background-color: #2b2b2b;
+      transform: translateY(-2px);
+    }
+
+    .trending-list button:active {
+      transform: translateY(0);
+    }
+
+    .trending-list button img {
+      width: 50px;
+      height: 75px;
+      object-fit: cover;
+      border-radius: 8px;
+      flex-shrink: 0;
+      box-shadow: 0 0 6px rgba(0, 200, 255, 0.5);
+    }
+
+    .trending-list button .movie-info {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+      flex-grow: 1;
+      overflow: hidden;
+    }
+
+    .trending-list button strong {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .trending-list button small {
+      font-size: 0.9rem;
+      background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      transition: color var(--transition-speed);
+    }
+
     @media (max-width: 1200px) {
       .search-container-wrapper,
       .main-content {
         width: 95vw;
         padding: 20px;
       }
-      .recent-movies .id-list {
+      .recent-movies .id-list,
+      .trending-list {
         grid-template-columns: repeat(2, 1fr);
       }
       .reviews-grid {
@@ -1224,7 +1321,8 @@
     }
 
     @media (max-width: 600px) {
-      .recent-movies .id-list {
+      .recent-movies .id-list,
+      .trending-list {
         grid-template-columns: 1fr;
       }
       .search-container {
@@ -1373,6 +1471,14 @@
       </div>
     </div>
 
+    <!-- Trending Movies Section -->
+    <div class="trending-movies" id="trendingMovies">
+      <h3>Trending Movies</h3>
+      <div class="trending-list" id="trendingList">
+        <!-- Trending movies will be loaded dynamically here -->
+      </div>
+    </div>
+
     <div class="recent-movies" id="recentMoviesSection">
       <h3>Recent Movies</h3>
       <div class="id-list" id="recentMoviesList"></div>
@@ -1435,9 +1541,12 @@
     const searchResults = document.getElementById('searchResults');
     const helpButton = document.getElementById('helpButton');
     const helpToggle = document.getElementById('helpToggle');
+    const trendingMovies = document.getElementById('trendingMovies');
+    const trendingList = document.getElementById('trendingList');
 
     // App constants and variables
     const OMDB_API_KEY = '43f4542f';
+    const TMDB_API_KEY = '4e44d9029b1270a757cddc766a1bcb63';
     const MAX_REVIEWS = 45; // Maximum number of reviews to keep
     let currentIframe = null;
     let isMediaLoaded = false;
@@ -2114,6 +2223,97 @@
       });
     }
 
+    // Fetch trending movies from TMDB API
+    async function fetchTrendingMovies() {
+      try {
+        const response = await fetch(`https://api.themoviedb.org/3/trending/movie/week?api_key=${TMDB_API_KEY}`);
+        const data = await response.json();
+        
+        if (data.results && data.results.length > 0) {
+          // Get the top 6 trending movies
+          const trendingMovies = data.results.slice(0, 6);
+          
+          // For each movie, we need to get its IMDb ID from TMDB movie details
+          const moviesWithImdbIds = await Promise.all(trendingMovies.map(async movie => {
+            try {
+              // Get movie details to find IMDb ID
+              const detailsResponse = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=${TMDB_API_KEY}&append_to_response=external_ids`);
+              const details = await detailsResponse.json();
+              
+              return {
+                id: details.external_ids.imdb_id || `tt${movie.id}`, // Fallback to TMDB ID if no IMDb ID
+                title: movie.title,
+                year: movie.release_date ? movie.release_date.substring(0, 4) : 'N/A',
+                type: 'movie',
+                poster: movie.poster_path ? `https://image.tmdb.org/t/p/w200${movie.poster_path}` : null,
+                releaseDate: movie.release_date || 'Unknown'
+              };
+            } catch (error) {
+              console.error(`Error fetching details for movie ${movie.id}:`, error);
+              return {
+                id: `tt${movie.id}`,
+                title: movie.title,
+                year: movie.release_date ? movie.release_date.substring(0, 4) : 'N/A',
+                type: 'movie',
+                poster: movie.poster_path ? `https://image.tmdb.org/t/p/w200${movie.poster_path}` : null,
+                releaseDate: movie.release_date || 'Unknown'
+              };
+            }
+          }));
+          
+          return moviesWithImdbIds;
+        }
+        return [];
+      } catch (error) {
+        console.error("Error fetching trending movies:", error);
+        return [];
+      }
+    }
+
+    // Render trending movies from API
+    async function renderTrendingMovies() {
+      trendingList.innerHTML = '';
+      showLoader(true);
+      
+      try {
+        const trendingMovies = await fetchTrendingMovies();
+        
+        if (trendingMovies.length === 0) {
+          trendingList.innerHTML = '<div class="initial-movie-item">No trending movies found</div>';
+          return;
+        }
+        
+        for (const movie of trendingMovies) {
+          const btn = document.createElement('button');
+          
+          btn.title = `Load ${movie.title} (${movie.id})`;
+          btn.addEventListener('click', (e) => {
+            createRipple(e);
+            imdbInput.value = movie.id;
+            updateURL(movie.id);
+            loadVideo(movie.id);
+          });
+
+          btn.innerHTML = `
+            ${movie.poster ? `<img src="${movie.poster}" alt="Poster of ${movie.title}" />` : '<div class="poster-placeholder"></div>'}
+            <div class="movie-info">
+              <strong>${movie.title}</strong>
+              <small>${movie.id}</small>
+              <span class="media-type-badge ${movie.type === 'movie' ? 'movie' : 'series'}">${movie.type === 'movie' ? 'Movie' : 'Series'}</span>
+              <span class="release-date">${movie.releaseDate}</span>
+            </div>
+          `;
+
+          trendingList.appendChild(btn);
+        }
+      } catch (error) {
+        console.error("Error rendering trending movies:", error);
+        trendingList.innerHTML = '<div class="initial-movie-item">Error loading trending movies</div>';
+      } finally {
+        showLoader(false);
+      }
+    }
+
     function saveRecentMedia(imdbID, type) {
       let recent = JSON.parse(localStorage.getItem('recentMedia')) || [];
       recent = recent.filter(item => item.id !== imdbID);
@@ -2328,6 +2528,12 @@
           return;
       }
       
+      // Destroy the player
+      if (currentIframe) {
+        currentIframe.remove();
+        currentIframe = null;
+      }
+      
       imdbInput.value = '';
       playerContainer.style.display = 'none';
       reviewSection.style.display = 'none';
@@ -2346,6 +2552,9 @@
           guidanceSection.classList.remove('visible');
           toggleHelpButton(true);
       }
+      
+      // Show trending movies when player is cleared
+      trendingMovies.classList.add('visible');
     });
 
     helpToggle.addEventListener('click', () => {
@@ -2483,7 +2692,12 @@
       if (mediaID) {
         imdbInput.value = mediaID;
         loadVideo(mediaID);
+      } else {
+        // Show trending movies when no movie is selected
+        trendingMovies.classList.add('visible');
+        renderTrendingMovies();
       }
+      
       renderRecentMedia();
     });
   </script>
