@@ -1247,10 +1247,12 @@
 
     .trending-list.expanded {
       max-height: 1000px;
+      padding: 10px 0;
     }
 
     .trending-list.collapsed {
       max-height: 300px;
+      padding: 10px 0;
     }
 
     .expand-toggle {
@@ -1268,7 +1270,7 @@
 
     .expand-toggle i {
       margin-left: 8px;
-      transition: transform 0.3s ease;
+      transition: transform 0.5s ease;
     }
 
     .expand-toggle.expanded i {
@@ -1443,7 +1445,7 @@
     <div class="search-results" id="searchResults"></div>
 
     <div class="help-button" id="helpButton">
-      <button id="helpToggle">I can't find the movie I'm looking for</button>
+      <button id="helpToggle">Can't find the movie your looking for?</button>
     </div>
 
     <div class="guidance-section" id="guidanceSection">
@@ -1508,7 +1510,7 @@
     <!-- Trending Movies Section -->
     <div class="trending-movies" id="trendingMovies">
       <h3>Trending Movies</h3>
-      <div class="trending-list" id="trendingList">
+      <div class="trending-list collapsed" id="trendingList">
         <!-- Trending movies will be loaded dynamically here -->
       </div>
       <div class="expand-toggle" id="expandToggle">
@@ -1968,7 +1970,8 @@
     }
 
     function toggleHelpButton(show) {
-      if (show && !helpButtonClicked) {
+      // Only show help button when search results are visible and no media is playing
+      if (show && !helpButtonClicked && !isMediaLoaded && (searchResults.classList.contains('visible') || initialSearchResults.classList.contains('visible'))) {
         helpButton.classList.add('visible');
       } else {
         helpButton.classList.remove('visible');
@@ -2042,28 +2045,26 @@
       // Exact match
       if (title.includes(query)) return true;
       
-      // Remove common words and punctuation
-      const commonWords = ['the', 'a', 'an', 'and', 'of', 'in', 'at', 'on', 'for'];
-      const cleanQuery = query.split(' ').filter(word => !commonWords.includes(word)).join(' ');
-      const cleanTitle = title.split(' ').filter(word => !commonWords.includes(word)).join(' ');
+      // Check if any word in the query matches any word in the title
+      const queryWords = query.split(/\s+/);
+      const titleWords = title.split(/\s+/);
       
-      if (cleanTitle.includes(cleanQuery)) return true;
+      // Count how many query words are found in title words
+      let matches = 0;
+      for (const qWord of queryWords) {
+        for (const tWord of titleWords) {
+          if (tWord.includes(qWord)) {
+            matches++;
+            break;
+          }
+        }
+      }
       
-      // Check for partial matches (at least 60% of words match)
-      const queryWords = cleanQuery.split(' ').filter(Boolean);
-      const titleWords = cleanTitle.split(' ').filter(Boolean);
-      
-      if (queryWords.length === 0 || titleWords.length === 0) return false;
-      
-      const matchingWords = queryWords.filter(qWord => 
-        titleWords.some(tWord => tWord.includes(qWord))
-      );
-      
-      return matchingWords.length / queryWords.length >= 0.6;
+      // If at least one word matches, consider it a partial match
+      return matches > 0;
     }
 
     async function searchByTitle(query, isInitialSearch = false) {
-      // Only trim whitespace from ends, preserve internal spaces
       query = query.trim();
       hasSearched = true;
       
@@ -2085,7 +2086,6 @@
       } else {
         searchResults.innerHTML = '<div class="search-loading">Searching...</div>';
         searchResults.classList.add('visible');
-        // Hide initial search results when showing big results
         initialSearchResults.classList.remove('visible');
       }
 
@@ -2133,16 +2133,36 @@
         }
 
         if (data.Response === 'True' && data.Search && data.Search.length > 0) {
-          // Sort results by relevance (using our fuzzy matching)
+          // Calculate relevance scores for each result
+          data.Search.forEach(item => {
+            const title = item.Title.toLowerCase();
+            const queryLower = query.toLowerCase();
+            
+            // Score based on exact match, starts with, contains, and fuzzy match
+            if (title === queryLower) {
+              item.relevance = 100; // Exact match
+            } else if (title.startsWith(queryLower)) {
+              item.relevance = 80; // Starts with query
+            } else if (title.includes(queryLower)) {
+              item.relevance = 60; // Contains query
+            } else if (fuzzyMatch(query, item.Title)) {
+              item.relevance = 40; // Fuzzy match
+            } else {
+              item.relevance = 0; // No match
+            }
+          });
+
+          // Filter out items with no relevance
+          data.Search = data.Search.filter(item => item.relevance > 0);
+          
+          // Sort by relevance (descending) and then by year (newer first)
           data.Search.sort((a, b) => {
-            const aMatch = fuzzyMatch(query, a.Title) ? 1 : 0;
-            const bMatch = fuzzyMatch(query, b.Title) ? 1 : 0;
-            
-            // Also consider year (newer first)
-            const yearDiff = parseInt(b.Year) - parseInt(a.Year);
-            
-            // Primary sort by match quality, secondary by year
-            return (bMatch - aMatch) || yearDiff;
+            if (b.relevance !== a.relevance) {
+              return b.relevance - a.relevance;
+            }
+            const yearA = parseInt(a.Year) || 0;
+            const yearB = parseInt(b.Year) || 0;
+            return yearB - yearA;
           });
 
           if (isInitialSearch) {
@@ -2174,8 +2194,10 @@
           } else {
             searchResults.innerHTML = '';
             
-            // Show all results in main search
-            data.Search.forEach(item => {
+            // Show all results in main search (5 rows of 3)
+            const topResults = data.Search.slice(0, 25); // Show 25 results (5 rows)
+            
+            topResults.forEach(item => {
               const movieCard = document.createElement('div');
               movieCard.className = 'movie-card';
               movieCard.innerHTML = `
@@ -2243,6 +2265,11 @@
           imdbInput.value = id;
           updateURL(id);
           loadVideo(id);
+          // Smooth scroll to top
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          });
         });
 
         btn.innerHTML = `
@@ -2271,7 +2298,7 @@
         
         if (data.results && data.results.length > 0) {
           // Get the top 12 trending movies (4 rows of 3)
-          const trendingMovies = data.results.slice(0, 12);
+          const trendingMovies = data.results.slice(0, 18);
           
           // For each movie, we need to get its IMDb ID from TMDB movie details
           const moviesWithImdbIds = await Promise.all(trendingMovies.map(async movie => {
@@ -2349,6 +2376,11 @@
             imdbInput.value = movie.id;
             updateURL(movie.id);
             loadVideo(movie.id);
+            // Smooth scroll to top
+            window.scrollTo({
+              top: 0,
+              behavior: 'smooth'
+            });
           });
 
           btn.innerHTML = `
@@ -2447,6 +2479,9 @@
       currentImdbID = imdbID;
       updateURL(imdbID);
 
+      // Hide trending movies instantly when a movie is selected
+      trendingMovies.style.display = 'none';
+
       showLoader(true);
       playerContainer.style.display = 'flex';
       playerContainer.querySelectorAll('iframe').forEach((el) => el.remove());
@@ -2479,8 +2514,8 @@
         saveRecentMedia(imdbID, mediaType);
         renderRecentMedia();
         
-        // Hide trending movies when a movie is loaded
-        trendingMovies.classList.remove('visible');
+        // Hide the help button when media is loaded
+        helpButton.classList.remove('visible');
         
         // Check for existing review when video loads
         checkForExistingReview();
@@ -2622,7 +2657,7 @@
       existingReviewDocId = null;
       
       // Show trending movies when player is cleared
-      trendingMovies.classList.add('visible');
+      trendingMovies.style.display = 'block';
       
       // Restore guidance section if help button was clicked before
       if (helpButtonClicked) {
@@ -2773,7 +2808,7 @@
         loadVideo(mediaID);
       } else {
         // Show trending movies when no movie is selected
-        trendingMovies.classList.add('visible');
+        trendingMovies.style.display = 'block';
         renderTrendingMovies();
       }
       
