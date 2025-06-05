@@ -501,6 +501,7 @@
       display: flex;
       gap: 1rem;
       justify-content: center;
+      order: -1; /* Move search to top */
     }
 
     .search-container input {
@@ -1239,6 +1240,39 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 18px 20px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.5s ease, padding 0.5s ease;
+    }
+
+    .trending-list.expanded {
+      max-height: 1000px;
+    }
+
+    .trending-list.collapsed {
+      max-height: 300px;
+    }
+
+    .expand-toggle {
+      display: flex;
+      justify-content: center;
+      margin-top: 15px;
+      cursor: pointer;
+      color: var(--primary-color);
+      transition: all 0.3s;
+    }
+
+    .expand-toggle:hover {
+      color: var(--accent-color);
+    }
+
+    .expand-toggle i {
+      margin-left: 8px;
+      transition: transform 0.3s ease;
+    }
+
+    .expand-toggle.expanded i {
+      transform: rotate(180deg);
     }
 
     .trending-list button {
@@ -1477,6 +1511,10 @@
       <div class="trending-list" id="trendingList">
         <!-- Trending movies will be loaded dynamically here -->
       </div>
+      <div class="expand-toggle" id="expandToggle">
+        <span>Show more</span>
+        <i class="fas fa-chevron-down"></i>
+      </div>
     </div>
 
     <div class="recent-movies" id="recentMoviesSection">
@@ -1543,6 +1581,7 @@
     const helpToggle = document.getElementById('helpToggle');
     const trendingMovies = document.getElementById('trendingMovies');
     const trendingList = document.getElementById('trendingList');
+    const expandToggle = document.getElementById('expandToggle');
 
     // App constants and variables
     const OMDB_API_KEY = '43f4542f';
@@ -1564,6 +1603,7 @@
     let searchTimeout = null;
     let hasSearched = false;
     let helpButtonClicked = false;
+    let isTrendingExpanded = false;
 
     /* Initialize Firebase Authentication */
     async function initializeAuth() {
@@ -2230,8 +2270,8 @@
         const data = await response.json();
         
         if (data.results && data.results.length > 0) {
-          // Get the top 6 trending movies
-          const trendingMovies = data.results.slice(0, 6);
+          // Get the top 12 trending movies (4 rows of 3)
+          const trendingMovies = data.results.slice(0, 12);
           
           // For each movie, we need to get its IMDb ID from TMDB movie details
           const moviesWithImdbIds = await Promise.all(trendingMovies.map(async movie => {
@@ -2270,6 +2310,23 @@
       }
     }
 
+    // Toggle trending movies expansion
+    function toggleTrendingExpansion() {
+      isTrendingExpanded = !isTrendingExpanded;
+      
+      if (isTrendingExpanded) {
+        trendingList.classList.remove('collapsed');
+        trendingList.classList.add('expanded');
+        expandToggle.querySelector('span').textContent = 'Show less';
+        expandToggle.classList.add('expanded');
+      } else {
+        trendingList.classList.remove('expanded');
+        trendingList.classList.add('collapsed');
+        expandToggle.querySelector('span').textContent = 'Show more';
+        expandToggle.classList.remove('expanded');
+      }
+    }
+
     // Render trending movies from API
     async function renderTrendingMovies() {
       trendingList.innerHTML = '';
@@ -2305,6 +2362,22 @@
           `;
 
           trendingList.appendChild(btn);
+        }
+        
+        // Set initial state based on whether there are recent movies
+        const recent = JSON.parse(localStorage.getItem('recentMedia')) || [];
+        if (recent.length === 0) {
+          // No recent movies - show all 4 rows
+          isTrendingExpanded = true;
+          trendingList.classList.add('expanded');
+          expandToggle.querySelector('span').textContent = 'Show less';
+          expandToggle.classList.add('expanded');
+        } else {
+          // Has recent movies - show only 2 rows initially
+          isTrendingExpanded = false;
+          trendingList.classList.add('collapsed');
+          expandToggle.querySelector('span').textContent = 'Show more';
+          expandToggle.classList.remove('expanded');
         }
       } catch (error) {
         console.error("Error rendering trending movies:", error);
@@ -2405,6 +2478,9 @@
         isMediaLoaded = true;
         saveRecentMedia(imdbID, mediaType);
         renderRecentMedia();
+        
+        // Hide trending movies when a movie is loaded
+        trendingMovies.classList.remove('visible');
         
         // Check for existing review when video loads
         checkForExistingReview();
@@ -2545,6 +2621,9 @@
       currentImdbID = null;
       existingReviewDocId = null;
       
+      // Show trending movies when player is cleared
+      trendingMovies.classList.add('visible');
+      
       // Restore guidance section if help button was clicked before
       if (helpButtonClicked) {
           guidanceSection.classList.add('visible');
@@ -2553,9 +2632,6 @@
           guidanceSection.classList.remove('visible');
           toggleHelpButton(true);
       }
-      
-      // Show trending movies when player is cleared
-      trendingMovies.classList.add('visible');
     });
 
     helpToggle.addEventListener('click', () => {
@@ -2642,6 +2718,8 @@
         e.preventDefault();
       }
     });
+
+    expandToggle.addEventListener('click', toggleTrendingExpansion);
 
     window.addEventListener('keydown', handleKeyDown);
 
