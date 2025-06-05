@@ -528,6 +528,14 @@
       box-shadow: 0 0 15px rgba(0, 200, 255, 0.25);
       display: none;
     }
+    
+    .no-recent-movies {
+      color: #aaa;
+      text-align: center;
+      padding: 30px;
+      grid-column: 1 / -1;
+      font-style: italic;
+    }
 
     .recent-movies h3 {
       margin-bottom: 12px;
@@ -1070,8 +1078,8 @@
 
     .search-results.visible {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 25px;
+      grid-template-columns: repeat(5, 1fr); /* 5 columns */
+      gap: 15px;
     }
 
     /* Hide scrollbar for search results */
@@ -1605,7 +1613,7 @@
     let searchTimeout = null;
     let hasSearched = false;
     let helpButtonClicked = false;
-    let isTrendingExpanded = false;
+    let isTrendingExpanded = false; // Start with trending collapsed by default
 
     /* Initialize Firebase Authentication */
     async function initializeAuth() {
@@ -2034,6 +2042,52 @@
       }
     }
 
+    // Calculate similarity between two strings using Levenshtein distance
+    function calculateSimilarity(str1, str2) {
+      const len1 = str1.length;
+      const len2 = str2.length;
+      
+      // Create a matrix to store distances
+      const matrix = [];
+      for (let i = 0; i <= len1; i++) {
+        matrix[i] = [i];
+      }
+      for (let j = 0; j <= len2; j++) {
+        matrix[0][j] = j;
+      }
+      
+      // Fill the matrix
+      for (let i = 1; i <= len1; i++) {
+        for (let j = 1; j <= len2; j++) {
+          const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j] + 1,     // Deletion
+            matrix[i][j - 1] + 1,     // Insertion
+            matrix[i - 1][j - 1] + cost // Substitution
+          );
+        }
+      }
+      
+      // Calculate similarity percentage
+      const distance = matrix[len1][len2];
+      const maxLength = Math.max(len1, len2);
+      return (1 - distance / maxLength) * 100;
+    }
+
+    // Check if two words are similar allowing for up to 3 letter differences
+    function isSimilarWord(word1, word2) {
+      if (Math.abs(word1.length - word2.length) > 3) return false;
+      
+      // If words are very short, require exact match
+      if (word1.length <= 3 || word2.length <= 3) {
+        return word1 === word2;
+      }
+      
+      // Calculate similarity
+      const similarity = calculateSimilarity(word1, word2);
+      return similarity >= 70; // 70% similarity threshold
+    }
+
     // Fuzzy search function to handle typos and partial matches
     function fuzzyMatch(query, title) {
       if (!query || !title) return false;
@@ -2043,7 +2097,11 @@
       title = title.toLowerCase().trim();
       
       // Exact match
-      if (title.includes(query)) return true;
+      if (title === query) return true;
+      
+      // Check for similarity percentage
+      const similarity = calculateSimilarity(query, title);
+      if (similarity > 70) return true; // 70% similarity threshold
       
       // Check if any word in the query matches any word in the title
       const queryWords = query.split(/\s+/);
@@ -2053,15 +2111,15 @@
       let matches = 0;
       for (const qWord of queryWords) {
         for (const tWord of titleWords) {
-          if (tWord.includes(qWord)) {
+          if (isSimilarWord(qWord, tWord)) {
             matches++;
             break;
           }
         }
       }
       
-      // If at least one word matches, consider it a partial match
-      return matches > 0;
+      // If at least half of the words match, consider it a partial match
+      return matches >= Math.ceil(queryWords.length / 2);
     }
 
     async function searchByTitle(query, isInitialSearch = false) {
@@ -2132,6 +2190,34 @@
           }
         }
 
+        // If still no results, try with common misspellings
+        if (data.Response !== 'True' || !data.Search || data.Search.length === 0) {
+          // Try common misspellings for popular movie terms
+          const commonMisspellings = {
+            'avenger': 'avengers',
+            'transformer': 'transformers',
+            'harry potter': 'harry potter',
+            'star wars': 'star wars',
+            'lord of the rings': 'lord of the rings',
+            'fast and furious': 'fast and furious'
+          };
+          
+          for (const [wrong, correct] of Object.entries(commonMisspellings)) {
+            if (query.toLowerCase().includes(wrong)) {
+              const correctedQuery = query.toLowerCase().replace(wrong, correct);
+              response = await fetch(
+                `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=${encodeURIComponent(correctedQuery)}`
+              );
+              data = await response.json();
+              
+              if (data.Response === 'True' && data.Search && data.Search.length > 0) {
+                data.Search = data.Search.filter(item => item.Type === 'movie' || item.Type === 'series');
+                break;
+              }
+            }
+          }
+        }
+
         if (data.Response === 'True' && data.Search && data.Search.length > 0) {
           // Calculate relevance scores for each result
           data.Search.forEach(item => {
@@ -2169,7 +2255,7 @@
             initialSearchResults.innerHTML = '';
             
             // Show top 5 most relevant results in initial search
-            const topResults = data.Search.slice(0, 5);
+            const topResults = data.Search.slice(0, 15);
             
             topResults.forEach(item => {
               const movieItem = document.createElement('div');
@@ -2194,8 +2280,8 @@
           } else {
             searchResults.innerHTML = '';
             
-            // Show all results in main search (5 rows of 3)
-            const topResults = data.Search.slice(0, 25); // Show 25 results (5 rows)
+            // Show 25 results (5 rows of 5)
+            const topResults = data.Search.slice(0, 25);
             
             topResults.forEach(item => {
               const movieCard = document.createElement('div');
@@ -2243,12 +2329,13 @@
 
     async function renderRecentMedia() {
       let recent = JSON.parse(localStorage.getItem('recentMedia')) || [];
-      if (recent.length === 0) {
-        recentMoviesSection.style.display = 'none';
-        return;
-      }
       recentMoviesSection.style.display = 'block';
       recentMoviesList.innerHTML = '';
+
+      if (recent.length === 0) {
+        recentMoviesList.innerHTML = '<div class="no-recent-movies">No recent movies yet. Search and watch movies to see them here.</div>';
+        return;
+      }
 
       recent = recent.slice(0, 21);
       const mediaItems = await Promise.all(recent.map(item => fetchMediaDetails(item.id)));
@@ -2297,7 +2384,7 @@
         const data = await response.json();
         
         if (data.results && data.results.length > 0) {
-          // Get the top 12 trending movies (4 rows of 3)
+          // Get the top 18 trending movies (6 rows of 3)
           const trendingMovies = data.results.slice(0, 18);
           
           // For each movie, we need to get its IMDb ID from TMDB movie details
@@ -2396,21 +2483,11 @@
           trendingList.appendChild(btn);
         }
         
-        // Set initial state based on whether there are recent movies
-        const recent = JSON.parse(localStorage.getItem('recentMedia')) || [];
-        if (recent.length === 0) {
-          // No recent movies - show all 4 rows
-          isTrendingExpanded = true;
-          trendingList.classList.add('expanded');
-          expandToggle.querySelector('span').textContent = 'Show less';
-          expandToggle.classList.add('expanded');
-        } else {
-          // Has recent movies - show only 2 rows initially
-          isTrendingExpanded = false;
-          trendingList.classList.add('collapsed');
-          expandToggle.querySelector('span').textContent = 'Show more';
-          expandToggle.classList.remove('expanded');
-        }
+        // Set initial state to collapsed
+        isTrendingExpanded = false;
+        trendingList.classList.add('collapsed');
+        expandToggle.querySelector('span').textContent = 'Show more';
+        expandToggle.classList.remove('expanded');
       } catch (error) {
         console.error("Error rendering trending movies:", error);
         trendingList.innerHTML = '<div class="initial-movie-item">Error loading trending movies</div>';
@@ -2658,6 +2735,13 @@
       
       // Show trending movies when player is cleared
       trendingMovies.style.display = 'block';
+      
+      // Collapse the trending movies section
+      trendingList.classList.remove('expanded');
+      trendingList.classList.add('collapsed');
+      expandToggle.querySelector('span').textContent = 'Show more';
+      expandToggle.classList.remove('expanded');
+      isTrendingExpanded = false;
       
       // Restore guidance section if help button was clicked before
       if (helpButtonClicked) {
