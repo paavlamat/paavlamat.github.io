@@ -1346,6 +1346,23 @@
       transition: color var(--transition-speed);
     }
 
+    /* Seek indicator styles */
+    .seek-indicator {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      z-index: 30;
+      display: none;
+      pointer-events: none;
+    }
+
     @media (max-width: 1200px) {
       .search-container-wrapper,
       .main-content {
@@ -1436,6 +1453,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Seek Indicator -->
+  <div class="seek-indicator" id="seekIndicator"></div>
 
   <!-- Main Content - Centered -->
   <div class="main-content">
@@ -1592,6 +1612,7 @@
     const trendingMovies = document.getElementById('trendingMovies');
     const trendingList = document.getElementById('trendingList');
     const expandToggle = document.getElementById('expandToggle');
+    const seekIndicator = document.getElementById('seekIndicator');
 
     // App constants and variables
     const OMDB_API_KEY = '43f4542f';
@@ -1614,6 +1635,7 @@
     let hasSearched = false;
     let helpButtonClicked = false;
     let isTrendingExpanded = false; // Start with trending collapsed by default
+    let lastSeekTime = 0; // To prevent rapid seeking
 
     /* Initialize Firebase Authentication */
     async function initializeAuth() {
@@ -2531,6 +2553,39 @@
       }
     }
 
+    // Show seek indicator with time change
+    function showSeekIndicator(seconds) {
+      const sign = seconds >= 0 ? '+' : '';
+      seekIndicator.textContent = `${sign}${seconds}s`;
+      seekIndicator.style.display = 'block';
+      
+      // Hide after 1 second
+      setTimeout(() => {
+        seekIndicator.style.display = 'none';
+      }, 1000);
+    }
+
+    // Handle arrow key seeking
+    function handleArrowKeys(e) {
+      if (!isMediaLoaded || isTypingReview) return;
+      
+      const now = Date.now();
+      if (now - lastSeekTime < 500) return; // Rate limit seeking
+      
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        lastSeekTime = now;
+        showSeekIndicator(5);
+        // In a real implementation, you would send a message to the iframe to seek forward
+        // This is just a visual indicator since we can't control the embedded player
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        lastSeekTime = now;
+        showSeekIndicator(-5);
+        // In a real implementation, you would send a message to the iframe to seek backward
+      }
+    }
+
     function handleKeyDown(e) {
       // Allow spacebar in input fields
       if (e.target === imdbInput || e.target === reviewText || e.target === reviewerName) {
@@ -2543,6 +2598,11 @@
       
       if (e.key.toLowerCase() === 'f' && isMediaLoaded && !isTypingReview) {
         toggleFullscreen();
+      }
+      
+      // Handle arrow keys for seeking
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        handleArrowKeys(e);
       }
     }
 
