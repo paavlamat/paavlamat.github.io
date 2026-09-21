@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>paavlamat · Projects</title>
+<meta name="description" content="All projects by paavlamat — games, tools and music." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕹️</text></svg>" />
+
+<style>
+  /* ---------- Design tokens ---------- */
+  :root{
+    --bg:            #0a0b10;
+    --bg-soft:       #11131c;
+    --card:          #151824;
+    --card-hover:    #1b1f2e;
+    --border:        rgba(255,255,255,.08);
+    --border-strong: rgba(255,255,255,.16);
+    --text:          #eef1f8;
+    --muted:         #99a0b5;
+    --accent:        #7c5cff;
+    --accent-2:      #00d4ff;
+    --radius:        18px;
+    --maxw:          1100px;
+    --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  /* ---------- Reset ---------- */
+  *,*::before,*::after{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+  body{
+    margin:0;
+    font-family:var(--font);
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.6;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  img,svg{ display:block; max-width:100%; }
+  a{ color:inherit; text-decoration:none; }
+
+  /* ---------- Ambient background ---------- */
+  .glow{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:0;
+    overflow:hidden;
+  }
+  .glow span{
+    position:absolute;
+    border-radius:50%;
+    filter:blur(90px);
+    opacity:.35;
+    animation:float 18s ease-in-out infinite;
+  }
+  .glow span:nth-child(1){ width:520px;height:520px; background:#7c5cff; top:-180px; left:-140px; }
+  .glow span:nth-child(2){ width:440px;height:440px; background:#00d4ff; top:20%; right:-160px; animation-delay:-6s; }
+  .glow span:nth-child(3){ width:400px;height:400px; background:#ff4d8d; bottom:-160px; left:35%; animation-delay:-12s; opacity:.22; }
+
+  @keyframes float{
+    0%,100%{ transform:translate3d(0,0,0) scale(1); }
+    50%    { transform:translate3d(30px,-40px,0) scale(1.12); }
+  }
+
+  /* ---------- Layout ---------- */
+  .wrap{
+    position:relative;
+    z-index:1;
+    max-width:var(--maxw);
+    margin:0 auto;
+    padding:0 22px 70px;
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    padding:84px 0 54px;
+    text-align:center;
+  }
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-size:.78rem;
+    font-weight:600;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--muted);
+    background:rgba(255,255,255,.04);
+    border:1px solid var(--border);
+    padding:7px 14px;
+    border-radius:999px;
+    margin-bottom:22px;
+  }
+  .dot{
+    width:7px;height:7px;border-radius:50%;
+    background:#28e07f;
+    box-shadow:0 0 0 0 rgba(40,224,127,.6);
+    animation:pulse 2.2s infinite;
+  }
+  @keyframes pulse{
+    70% { box-shadow:0 0 0 9px rgba(40,224,127,0); }
+    100%{ box-shadow:0 0 0 0 rgba(40,224,127,0); }
+  }
+
+  h1{
+    font-size:clamp(2.4rem,7vw,4.2rem);
+    line-height:1.05;
+    margin:0 0 18px;
+    font-weight:800;
+    letter-spacing:-.03em;
+  }
+  .grad{
+    background:linear-gradient(100deg,#7c5cff 0%,#00d4ff 50%,#ff4d8d 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  header p{
+    max-width:560px;
+    margin:0 auto;
+    color:var(--muted);
+    font-size:1.05rem;
+  }
+
+  /* ---------- Section titles ---------- */
+  .section-head{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    margin:56px 0 22px;
+  }
+  .section-head h2{
+    font-size:1.05rem;
+    font-weight:700;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    margin:0;
+    color:var(--text);
+  }
+  .section-head .line{
+    flex:1;
+    height:1px;
+    background:linear-gradient(90deg,var(--border-strong),transparent);
+  }
+
+  /* ---------- Grid ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+    gap:20px;
+  }
+
+  /* ---------- Card ---------- */
+  .card{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:26px 24px 22px;
+    overflow:hidden;
+    transition:transform .28s cubic-bezier(.2,.7,.3,1),
+               border-color .28s ease,
+               background .28s ease,
+               box-shadow .28s ease;
+  }
+  .card::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    background:radial-gradient(400px circle at var(--mx,50%) var(--my,0%),
+               var(--tint,rgba(124,92,255,.16)), transparent 70%);
+    opacity:0;
+    transition:opacity .3s ease;
+    pointer-events:none;
+  }
+  .card:hover{
+    transform:translateY(-6px);
+    background:var(--card-hover);
+    border-color:var(--border-strong);
+    box-shadow:0 22px 45px -22px rgba(0,0,0,.9);
+  }
+  .card:hover::before{ opacity:1; }
+
+  .icon{
+    width:52px;height:52px;
+    display:grid;place-items:center;
+    font-size:1.6rem;
+    border-radius:14px;
+    background:linear-gradient(140deg,var(--tint,rgba(124,92,255,.2)),rgba(255,255,255,.03));
+    border:1px solid var(--border);
+    margin-bottom:18px;
+    transition:transform .28s cubic-bezier(.2,.7,.3,1);
+  }
+  .card:hover .icon{ transform:scale(1.08) rotate(-4deg); }
+
+  .card h3{
+    margin:0 0 6px;
+    font-size:1.22rem;
+    font-weight:700;
+    letter-spacing:-.01em;
+  }
+  .card p{
+    margin:0 0 22px;
+    color:var(--muted);
+    font-size:.93rem;
+    flex:1;
+  }
+
+  .tag{
+    display:inline-block;
+    font-size:.7rem;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    padding:3px 9px;
+    border-radius:6px;
+    background:rgba(255,255,255,.06);
+    border:1px solid var(--border);
+    color:var(--muted);
+    margin-left:8px;
+    vertical-align:middle;
+  }
+
+  /* ---------- Buttons ---------- */
+  .actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-size:.88rem;
+    font-weight:600;
+    padding:10px 16px;
+    border-radius:11px;
+    border:1px solid var(--border-strong);
+    background:rgba(255,255,255,.04);
+    color:var(--text);
+    cursor:pointer;
+    transition:background .2s ease, transform .2s ease, border-color .2s ease;
+    white-space:nowrap;
+  }
+  .btn:hover{
+    background:rgba(255,255,255,.1);
+    transform:translateY(-2px);
+  }
+  .btn:active{ transform:translateY(0); }
+
+  .btn-primary{
+    background:linear-gradient(100deg,var(--accent),var(--accent-2));
+    border-color:transparent;
+    color:#08090f;
+  }
+  .btn-primary:hover{
+    background:linear-gradient(100deg,#8f73ff,#3ce0ff);
+    box-shadow:0 10px 26px -12px rgba(124,92,255,.9);
+  }
+
+  .btn svg{ width:15px;height:15px;flex:none; }
+
+  /* ---------- Note strip ---------- */
+  .note{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:16px;
+    padding:10px 14px;
+    border-radius:11px;
+    background:rgba(255,193,7,.07);
+    border:1px solid rgba(255,193,7,.22);
+    color:#ffd76a;
+    font-size:.82rem;
+    font-weight:500;
+  }
+  .note code{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    background:rgba(0,0,0,.35);
+    padding:2px 6px;
+    border-radius:5px;
+    font-size:.8rem;
+  }
+
+  /* ---------- Toast ---------- */
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:28px;
+    transform:translate(-50%,140%);
+    background:#1b1f2e;
+    border:1px solid var(--border-strong);
+    color:var(--text);
+    padding:12px 20px;
+    border-radius:12px;
+    font-size:.88rem;
+    font-weight:600;
+    box-shadow:0 20px 50px -20px #000;
+    transition:transform .35s cubic-bezier(.2,.8,.3,1);
+    z-index:50;
+  }
+  .toast.show{ transform:translate(-50%,0); }
+
+  /* ---------- Reveal on scroll ---------- */
+  .reveal{
+    opacity:0;
+    transform:translateY(22px);
+    transition:opacity .6s ease, transform .6s cubic-bezier(.2,.7,.3,1);
+  }
+  .reveal.in{ opacity:1; transform:none; }
+
+  @media (max-width:520px){
+    header{ padding:60px 0 40px; }
+    .card{ padding:22px 20px 18px; }
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *{ animation:none !important; transition:none !important; }
+    .reveal{ opacity:1; transform:none; }
+  }
+</style>
+</head>
+
+<body>
+
+<!-- ambient background -->
+<div class="glow" aria-hidden="true">
+  <span></span><span></span><span></span>
+</div>
+
+<div class="wrap">
+
+  <!-- ================= HEADER ================= -->
+  <header>
+    <div class="badge"><span class="dot"></span> paavlamat.github.io</div>
+    <h1><span class="grad">paavlamat</span></h1>
+  </header>
+
+  <!-- ================= GAMES ================= -->
+  <div class="section-head reveal">
+    <h2>Games</h2>
+    <div class="line"></div>
+  </div>
+
+  <div class="grid">
+
+    <!-- Tile Game -->
+    <article class="card reveal" style="--tint: rgba(0,212,255,.18);">
+      <div class="icon" style="--tint: rgba(0,212,255,.22);">🏞️</div>
+      <h3>Tile Game</h3>
+      <p>A tile-based city builder with invading disasters.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="https://paavlamat.github.io/tilegame/" target="_blank" rel="noopener">
+          Play now
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
+        </a>
+        <button class="btn" data-copy="https://paavlamat.github.io/tilegame/">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy link
+        </button>
+      </div>
+    </article>
+
+    <!-- Mineduel -->
+    <article class="card reveal" style="--tint: rgba(255,77,141,.18);">
+      <div class="icon" style="--tint: rgba(255,77,141,.22);">💥</div>
+      <h3>Mineduel</h3>
+      <p>Minesweeper with extended online multiplayer focused gamemodes.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="https://paavlamat.github.io/mineduel/" target="_blank" rel="noopener">
+          Play now
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
+        </a>
+        <button class="btn" data-copy="https://paavlamat.github.io/mineduel/">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy link
+        </button>
+      </div>
+    </article>
+
+    <!-- Wavelength -->
+    <article class="card reveal" style="--tint: rgba(124,92,255,.2);">
+      <div class="icon" style="--tint: rgba(124,92,255,.24);">🃏</div>
+      <h3>Wavelength Game</h3>
+      <p>Get a topic and get your friend to get where that topic lays on the adjustable bar.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="https://paavlamat.github.io/wavelength/" target="_blank" rel="noopener">
+          Play now
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
+        </a>
+        <button class="btn" data-copy="https://paavlamat.github.io/wavelength/">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy link
+        </button>
+      </div>
+    </article>
+
+  </div>
+
+  <!-- ================= TOOLS ================= -->
+  <div class="section-head reveal">
+    <h2>Tools</h2>
+    <div class="line"></div>
+  </div>
+
+  <div class="grid">
+
+    <!-- Copy Tool -->
+    <article class="card reveal" style="--tint: rgba(40,224,127,.18); grid-column:1/-1;">
+      <div class="icon" style="--tint: rgba(40,224,127,.22);">📋</div>
+      <h3>Copy Tool <span class="tag">Python</span></h3>
+      <p>A lightweight Python utility for logging your copy history for easy access and editability.</p>
+
+      <div class="actions">
+        <a class="btn btn-primary"
+           href="https://download1532.mediafire.com/5qit1a1gvqpgDp13x8Szgzn2uP_55KNVMDvZfD2df4hE158kAQC8Bkskvg8PT4UvSYGbC9jQiYj2N9o4pEflB2bjjh5Nv_iNhBIJrDEvn5Ob7eEeP9UY74dReJAZNHvxx1nBePmvxyOTWghwq5RF8tGFAUYQo9yjw68FlAgyHw/ah0j0qdro7eerpe/copy_tool.zip"
+           target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Direct download (.zip)
+        </a>
+        <button class="btn" data-copy="https://download1532.mediafire.com/5qit1a1gvqpgDp13x8Szgzn2uP_55KNVMDvZfD2df4hE158kAQC8Bkskvg8PT4UvSYGbC9jQiYj2N9o4pEflB2bjjh5Nv_iNhBIJrDEvn5Ob7eEeP9UY74dReJAZNHvxx1nBePmvxyOTWghwq5RF8tGFAUYQo9yjw68FlAgyHw/ah0j0qdro7eerpe/copy_tool.zip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy download link
+        </button>
+      </div>
+
+      <div class="note">
+        ⚠️ <span>Requires <code>Python 3.7</code> or higher to run.</span>
+      </div>
+    </article>
+
+  </div>
+
+  <!-- ================= MUSIC ================= -->
+  <div class="section-head reveal">
+    <h2>Music</h2>
+    <div class="line"></div>
+  </div>
+
+  <div class="grid">
+
+    <article class="card reveal" style="--tint: rgba(255,0,0,.16); grid-column:1/-1;">
+      <div class="icon" style="--tint: rgba(255,0,0,.22);">🎧</div>
+      <h3>YouTube Music Playlist</h3>
+      <p></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="https://music.youtube.com/channel/UCoBv_rgf5IdK2KoFTqw_8Mw" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.6 7.2s-.2-1.4-.8-2c-.8-.8-1.6-.8-2-.9C16.6 4.1 12 4.1 12 4.1h0s-4.6 0-6.8.2c-.4.1-1.2.1-2 .9-.6.6-.8 2-.8 2S2.2 8.8 2.2 10.5v1.6c0 1.6.2 3.3.2 3.3s.2 1.4.8 2c.8.8 1.8.8 2.2.9 1.6.1 6.6.2 6.6.2s4.6 0 6.8-.2c.4-.1 1.2-.1 2-.9.6-.6.8-2 .8-2s.2-1.6.2-3.3v-1.6c0-1.7-.2-3.3-.2-3.3zM9.9 14.6V8.9l5.4 2.9-5.4 2.8z"/></svg>
+          Open playlist
+        </a>
+      </div>
+    </article>
+
+  </div>
+
+</div>
+
+<!-- toast -->
+<div class="toast" id="toast">Link copied!</div>
+
+<script>
+  /* ---------- Copy-to-clipboard buttons ---------- */
+  const toast = document.getElementById('toast');
+  let toastTimer;
+
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1900);
+  }
+
+  document.querySelectorAll('[data-copy]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const text = btn.dataset.copy;
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('Link copied to clipboard!');
+      } catch {
+        // Fallback for older browsers / insecure contexts
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); showToast('Link copied to clipboard!'); }
+        catch { showToast('Could not copy — please copy manually.'); }
+        document.body.removeChild(ta);
+      }
+    });
+  });
+
+  /* ---------- Card spotlight follows cursor ---------- */
+  document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('pointermove', e => {
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', ((e.clientX - r.left) / r.width) * 100 + '%');
+      card.style.setProperty('--my', ((e.clientY - r.top) / r.height) * 100 + '%');
+    });
+  });
+
+  /* ---------- Reveal on scroll ---------- */
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        entry.target.style.transitionDelay = (i * 70) + 'ms';
+        entry.target.classList.add('in');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>
